@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Connector Overview | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Connectors</p>
+    <h1>Marketplace connector overview</h1>
+  </div>
+</section>
+<div class="dashboard-grid">
+  <section class="stack-card">
+    <h2>Channel accounts</h2>
+    {% for account in accounts %}
+      <article class="mini-card">
+        <strong>{{ account.name }}</strong>
+        <p>{{ account.get_provider_display }} ? {{ account.account_identifier }}</p>
+      </article>
+    {% empty %}
+      <p>No channel accounts configured yet.</p>
+    {% endfor %}
+  </section>
+  <section class="stack-card">
+    <h2>Recent sync jobs</h2>
+    {% for job in jobs %}
+      <article class="mini-card">
+        <strong>{{ job.action }}</strong>
+        <p>{{ job.provider }} ? {{ job.status }}</p>
+      </article>
+    {% empty %}
+      <p>No jobs have been queued yet.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

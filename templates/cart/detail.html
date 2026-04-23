@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Your Cart | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Cart</p>
+    <h1>Your cart</h1>
+  </div>
+  {% if cart and cart.items.exists %}
+    <a class="button primary" href="{% url 'checkout:start' %}">Continue to checkout</a>
+  {% endif %}
+</section>
+{% if cart and cart.items.exists %}
+  <div class="stack-list">
+    {% for item in cart.items.all %}
+      <article class="stack-card">
+        <div>
+          <h2>{{ item.product.name }}</h2>
+          <p>{{ item.variant.title }} ? Fulfilled via {{ item.product.get_default_source_display }}</p>
+          <strong>${{ item.line_total }}</strong>
+        </div>
+        <div class="cart-actions">
+          <form method="post" action="{% url 'cart:update_item' item.pk %}">
+            {% csrf_token %}
+            <input type="number" name="quantity" min="0" value="{{ item.quantity }}">
+            <button class="button" type="submit">Update</button>
+          </form>
+          <form method="post" action="{% url 'cart:remove_item' item.pk %}">
+            {% csrf_token %}
+            <button class="button ghost" type="submit">Remove</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+  <section class="summary-card">
+    <p>Subtotal</p>
+    <h2>${{ cart.subtotal }}</h2>
+  </section>
+{% else %}
+  <section class="empty-state">
+    <h2>Your cart is empty.</h2>
+    <a class="button primary" href="{% url 'catalog:product_list' %}">Start shopping</a>
+  </section>
+{% endif %}
+{% endblock %}

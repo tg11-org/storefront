@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Sign Up | TG11 Shop{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <p class="eyebrow">Create account</p>
+  <h1>Join the shop</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="button primary" type="submit">Create account</button>
+  </form>
+  <p><a href="{% url 'account_login' %}">Already have an account?</a></p>
+</section>
+{% endblock %}

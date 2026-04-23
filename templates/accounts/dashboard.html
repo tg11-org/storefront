@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Account Dashboard | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Account</p>
+    <h1>Account dashboard</h1>
+  </div>
+  <a class="button primary" href="{% url 'payments:add_method' %}">Add payment method</a>
+</section>
+<div class="dashboard-grid">
+  <section class="stack-card">
+    <h2>Saved addresses</h2>
+    {% for address in addresses %}
+      <article class="mini-card">
+        <strong>{{ address.label }}</strong>
+        <p>{{ address.full_name }}<br>{{ address.line1 }}{% if address.line2 %}, {{ address.line2 }}{% endif %}<br>{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+      </article>
+    {% empty %}
+      <p>No saved addresses yet.</p>
+    {% endfor %}
+  </section>
+
+  <section class="stack-card">
+    <h2>Add address</h2>
+    <form method="post" class="form-grid compact-grid">
+      {% csrf_token %}
+      {{ address_form.as_p }}
+      <button class="button primary" type="submit">Save address</button>
+    </form>
+  </section>
+
+  <section class="stack-card">
+    <h2>Saved payment methods</h2>
+    {% for method in payment_methods %}
+      <article class="mini-card">
+        <strong>{{ method.brand|default:'Card'|title }} ending {{ method.last4 }}</strong>
+        <p>Expires {{ method.exp_month }}/{{ method.exp_year }}</p>
+      </article>
+    {% empty %}
+      <p>No saved payment methods synced yet.</p>
+    {% endfor %}
+  </section>
+
+  <section class="stack-card">
+    <h2>Recent orders</h2>
+    {% for order in orders %}
+      <article class="mini-card">
+        <a href="{% url 'orders:detail' order.number %}">{{ order.number }}</a>
+        <p>{{ order.get_status_display }} ? Fulfilled via {{ order.fulfillment_label }}</p>
+      </article>
+    {% empty %}
+      <p>No orders yet.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

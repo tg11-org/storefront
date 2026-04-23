@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    network_mode: host
+    command: >
+      postgres
+      -c port=${DB_PORT:-55432}
+      -c listen_addresses=${DB_HOST:-127.6.0.11}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h ${DB_HOST:-127.6.0.11} -p ${DB_PORT:-55432} -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    build: .
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DB_ENGINE: django.db.backends.postgresql
+      GUNICORN_BIND: ${GUNICORN_BIND:-127.6.0.10:8000}
+    volumes:
+      - ./media:/app/media
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://${APP_HOST:-127.6.0.10}:${APP_PORT:-8000}/health/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:

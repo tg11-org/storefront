@@ -1,0 +1,7 @@
+Django==6.0.4
+Pillow==12.2.0
+django-allauth==65.16.0
+stripe==15.0.1
+gunicorn==25.3.0
+psycopg[binary]==3.3.3
+whitenoise==6.12.0

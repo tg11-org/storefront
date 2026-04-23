@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}TG11 Shop | Products{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Catalog</p>
+    <h1>Browse products</h1>
+  </div>
+  <p>Native, Etsy-linked, and future connector-driven items all live behind one storefront.</p>
+</section>
+<div class="card-grid">
+  {% for product in object_list %}
+    <article class="product-card">
+      <p class="pill">Fulfilled via {{ product.fulfillment_label }}</p>
+      <h2><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h2>
+      <p>{{ product.short_description|default:product.description|truncatechars:120 }}</p>
+      <div class="card-meta">
+        <strong>${{ product.display_price }}</strong>
+        <a href="{{ product.get_absolute_url }}">Details</a>
+      </div>
+    </article>
+  {% empty %}
+    <p>No products are active right now.</p>
+  {% endfor %}
+</div>
+{% endblock %}

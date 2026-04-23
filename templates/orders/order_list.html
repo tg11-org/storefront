@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Orders | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Orders</p>
+    <h1>Your orders</h1>
+  </div>
+</section>
+<div class="stack-list">
+  {% for order in object_list %}
+    <article class="stack-card">
+      <div>
+        <h2><a href="{% url 'orders:detail' order.number %}">{{ order.number }}</a></h2>
+        <p>{{ order.get_status_display }} ? Fulfilled via {{ order.fulfillment_label }}</p>
+      </div>
+      <strong>${{ order.grand_total }}</strong>
+    </article>
+  {% empty %}
+    <p>You have not placed any orders yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

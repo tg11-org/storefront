@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}{{ object.name }} | TG11 Shop{% endblock %}
+{% block content %}
+<section class="detail-grid">
+  <article class="detail-card">
+    <p class="pill">Fulfilled via {{ object.fulfillment_label }}</p>
+    <h1>{{ object.name }}</h1>
+    <p class="lead">{{ object.short_description|default:object.description }}</p>
+    <div class="prose">{{ object.description|linebreaks }}</div>
+  </article>
+  <aside class="purchase-card">
+    <h2>${{ object.display_price }}</h2>
+    <p>{{ object.get_product_type_display }} product</p>
+    <form method="post" action="{% url 'cart:add' object.slug %}">
+      {% csrf_token %}
+      <label for="variant_id">Variant</label>
+      <select id="variant_id" name="variant_id">
+        {% for variant in object.variants.all %}
+          <option value="{{ variant.id }}">{{ variant.title }} - ${{ variant.price }}</option>
+        {% endfor %}
+      </select>
+      <label for="quantity">Quantity</label>
+      <input id="quantity" type="number" name="quantity" min="1" value="1">
+      <button class="button primary" type="submit">Add to cart</button>
+    </form>
+  </aside>
+</section>
+{% endblock %}

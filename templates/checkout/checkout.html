@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Checkout | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Checkout</p>
+    <h1>Review and pay</h1>
+  </div>
+  <p>Orders use Stripe Checkout in test mode and only store Stripe references in Django.</p>
+</section>
+<form method="post" class="checkout-grid">
+  {% csrf_token %}
+  <section class="stack-card">
+    <h2>Shipping</h2>
+    {{ form.shipping_address.label_tag }}{{ form.shipping_address }}
+    <div class="form-grid">
+      {{ form.full_name.label_tag }}{{ form.full_name }}
+      {{ form.company_name.label_tag }}{{ form.company_name }}
+      {{ form.line1.label_tag }}{{ form.line1 }}
+      {{ form.line2.label_tag }}{{ form.line2 }}
+      {{ form.city.label_tag }}{{ form.city }}
+      {{ form.state.label_tag }}{{ form.state }}
+      {{ form.postal_code.label_tag }}{{ form.postal_code }}
+      {{ form.country.label_tag }}{{ form.country }}
+      {{ form.phone_number.label_tag }}{{ form.phone_number }}
+    </div>
+    <label class="checkbox-row">{{ form.save_address }} Save this shipping address</label>
+    <label class="checkbox-row">{{ form.same_as_shipping }} Billing is the same as shipping</label>
+  </section>
+
+  <section class="stack-card">
+    <h2>Billing</h2>
+    {{ form.billing_address.label_tag }}{{ form.billing_address }}
+    <div class="form-grid">
+      {{ form.billing_full_name.label_tag }}{{ form.billing_full_name }}
+      {{ form.billing_line1.label_tag }}{{ form.billing_line1 }}
+      {{ form.billing_line2.label_tag }}{{ form.billing_line2 }}
+      {{ form.billing_city.label_tag }}{{ form.billing_city }}
+      {{ form.billing_state.label_tag }}{{ form.billing_state }}
+      {{ form.billing_postal_code.label_tag }}{{ form.billing_postal_code }}
+      {{ form.billing_country.label_tag }}{{ form.billing_country }}
+    </div>
+    {{ form.notes.label_tag }}{{ form.notes }}
+  </section>
+
+  <aside class="summary-card">
+    <h2>Order summary</h2>
+    {% for item in cart.items.all %}
+      <div class="summary-line"><span>{{ item.product.name }} x {{ item.quantity }}</span><strong>${{ item.line_total }}</strong></div>
+    {% endfor %}
+    <div class="summary-line total"><span>Total</span><strong>${{ cart.subtotal }}</strong></div>
+    {% if form.errors %}
+      <div class="error-list">{{ form.errors }}</div>
+    {% endif %}
+    <button class="button primary" type="submit">Proceed to Stripe</button>
+  </aside>
+</form>
+{% endblock %}

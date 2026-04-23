@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}TG11 Shop | Home{% endblock %}
+{% block content %}
+<section class="hero-panel">
+  <div>
+    <p class="eyebrow">Django ecommerce hub</p>
+    <h1>Sell native products, route external fulfillment, and keep the storefront clean.</h1>
+    <p class="lead">This build keeps core commerce inside Django while isolating marketplace connectors for Etsy, PopCustoms, and the next thing we decide to plug in.</p>
+    <div class="cta-row">
+      <a class="button primary" href="{% url 'catalog:product_list' %}">Browse catalog</a>
+      <a class="button" href="{% url 'accounts:dashboard' %}">Open account</a>
+    </div>
+  </div>
+  <div class="hero-card">
+    <p>Fulfillment routing</p>
+    <ul>
+      <li>Native inventory</li>
+      <li>Etsy listing sync scaffold</li>
+      <li>PopCustoms placeholder adapter</li>
+      <li>Stripe customer and payment refs only</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section-header">
+  <h2>Featured drops</h2>
+  <a href="{% url 'catalog:product_list' %}">See all products</a>
+</section>
+<div class="card-grid">
+  {% for product in featured_products %}
+    <article class="product-card">
+      <p class="pill">Fulfilled via {{ product.fulfillment_label }}</p>
+      <h3><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+      <p>{{ product.short_description|default:product.description|truncatechars:120 }}</p>
+      <div class="card-meta">
+        <strong>${{ product.display_price }}</strong>
+        <a href="{{ product.get_absolute_url }}">View</a>
+      </div>
+    </article>
+  {% empty %}
+    <p>No featured products yet. Run <code>python manage.py seed_shop</code> to load starter data.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Operations Dashboard | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Back office</p>
+    <h1>Operations dashboard</h1>
+  </div>
+  <a class="button" href="{% url 'admin:index' %}">Open Django admin</a>
+</section>
+<div class="metric-grid">
+  <article class="metric-card"><span>Orders</span><strong>{{ metrics.order_count }}</strong></article>
+  <article class="metric-card"><span>Gross sales</span><strong>${{ metrics.gross_sales }}</strong></article>
+  <article class="metric-card"><span>Connector jobs</span><strong>{{ metrics.connector_jobs }}</strong></article>
+  <article class="metric-card"><span>Successful payments</span><strong>{{ metrics.successful_payments }}</strong></article>
+</div>
+<div class="dashboard-grid">
+  <section class="stack-card">
+    <h2>Recent orders</h2>
+    {% for order in recent_orders %}
+      <article class="mini-card">
+        <strong>{{ order.number }}</strong>
+        <p>{{ order.get_status_display }} ? {{ order.get_source_display }}</p>
+      </article>
+    {% endfor %}
+  </section>
+  <section class="stack-card">
+    <h2>Recent sync jobs</h2>
+    {% for job in recent_jobs %}
+      <article class="mini-card">
+        <strong>{{ job.provider }} / {{ job.action }}</strong>
+        <p>{{ job.status }} ? {{ job.target_type }} {{ job.target_id }}</p>
+      </article>
+    {% empty %}
+      <p>No sync jobs yet.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
