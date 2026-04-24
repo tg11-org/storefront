@@ -181,6 +181,7 @@ systemctl reload apache2
 - `GUNICORN_BIND=127.6.0.10:8000`
 - `STRIPE_ACCOUNT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_API_HEADER`
+- `ETSY_API_KEY`, `ETSY_SHARED_SECRET`
 
 ## Stripe integration
 
@@ -209,6 +210,8 @@ Suggested events:
 - `connectors.etsy.EtsyConnector` contains a real API scaffold for pulling Etsy receipts.
 - `connectors.popcustoms.PopCustomsConnector` can submit queued orders to the configured PopCustoms order endpoint.
 - `ChannelAccount`, `ExternalListing`, `ExternalOrder`, and `SyncJob` keep marketplace concerns isolated from core storefront models.
+
+For Etsy, store the app keystring and shared secret in `.env`. The channel account can use the numeric Etsy shop ID as `account_identifier`, or include it in config JSON as `{"shop_id": "..."}`. OAuth access and refresh tokens are still required before private Etsy shop/order API calls can run.
 
 ### Fulfillment jobs
 

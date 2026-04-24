@@ -101,7 +101,7 @@ def channel_create(request):
         return redirect('dashboard:manage')
     provider_notes = [
         {'name': 'PopCustoms', 'details': 'Use TG11 as the account identifier. The API key and order endpoint can stay in .env, so config JSON can be empty unless PopCustoms gives extra store settings.'},
-        {'name': 'Etsy', 'details': 'Use your shop ID as config JSON, and OAuth tokens when you are ready to sync receipts or listing data.'},
+        {'name': 'Etsy', 'details': 'Put the keystring and shared secret in .env. Use your numeric shop ID as the account identifier or as {"shop_id": "..."} in config JSON, then add OAuth tokens when the connect flow is ready.'},
     ]
     return render(
         request,

@@ -7,6 +7,7 @@ from catalog.models import Product, ProductVariant
 from orders.models import Order, OrderItem
 
 from .models import ChannelAccount, ExternalListing, SyncJob
+from .etsy import EtsyConnector
 from .popcustoms import PopCustomsConnector
 from .services import process_pending_fulfillment_jobs, queue_external_fulfillment_for_order
 
@@ -92,3 +93,33 @@ class ExternalFulfillmentQueueTests(TestCase):
         self.assertEqual(jobs[0].status, SyncJob.Status.SUCCEEDED)
         order.refresh_from_db()
         self.assertEqual(order.sync_state, Order.SyncState.SYNCED)
+
+
+class EtsyConnectorTests(TestCase):
+    @override_settings(ETSY_API_KEY='etsy-key', ETSY_SHARED_SECRET='etsy-secret')
+    def test_etsy_headers_use_env_keystring_and_shared_secret(self):
+        channel = ChannelAccount.objects.create(
+            provider=ChannelAccount.Provider.ETSY,
+            name='Etsy TG11',
+            account_identifier='12345',
+            access_token='token-value',
+        )
+
+        headers = EtsyConnector(channel)._headers()
+
+        self.assertEqual(headers['x-api-key'], 'etsy-key:etsy-secret')
+        self.assertEqual(headers['Authorization'], 'Bearer token-value')
+
+    @override_settings(ETSY_API_KEY='etsy-key', ETSY_SHARED_SECRET='etsy-secret')
+    def test_etsy_config_can_override_env_credentials(self):
+        channel = ChannelAccount.objects.create(
+            provider=ChannelAccount.Provider.ETSY,
+            name='Etsy TG11',
+            account_identifier='12345',
+            access_token='token-value',
+            config={'api_key': 'override-key', 'shared_secret': 'override-secret', 'shop_id': '67890'},
+        )
+        connector = EtsyConnector(channel)
+
+        self.assertEqual(connector.shop_id, '67890')
+        self.assertEqual(connector._headers()['x-api-key'], 'override-key:override-secret')
