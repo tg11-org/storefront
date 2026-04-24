@@ -67,6 +67,11 @@ class ProductVariant(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
+    max_order_quantity = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Optional per-order cap for fairness. Leave blank for no cap beyond stock.',
+    )
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -81,11 +86,17 @@ class ProductVariant(models.Model):
     def __str__(self) -> str:
         return f'{self.product.name} / {self.title}'
 
+    @property
+    def effective_max_order_quantity(self) -> int:
+        if self.max_order_quantity is None:
+            return self.stock_quantity
+        return min(self.stock_quantity, self.max_order_quantity)
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='images', null=True, blank=True)
-    image = models.ImageField(upload_to='products/', blank=True)
+    image = models.ImageField(upload_to='products/')
     alt_text = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -94,6 +105,34 @@ class ProductImage(models.Model):
 
     def __str__(self) -> str:
         return self.alt_text or f'Image for {self.product.name}'
+
+    def clean(self):
+        """Ensure max 5 images per product."""
+        if self.pk is None:  # Only check for new images
+            existing_count = ProductImage.objects.filter(product=self.product).count()
+            if existing_count >= 5:
+                from django.core.exceptions import ValidationError
+                raise ValidationError('Maximum 5 images per product.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class ProductVideo(models.Model):
+    """Single video per product for showcase/demos."""
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='video')
+    video = models.FileField(
+        upload_to='products/videos/',
+        help_text='Supported formats: MP4, WebM, Ogg (max 100MB)'
+    )
+    thumbnail = models.ImageField(upload_to='products/video_thumbnails/', blank=True, null=True)
+    title = models.CharField(max_length=255, default='Product video')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f'Video: {self.product.name}'
 
 
 class StorePage(models.Model):

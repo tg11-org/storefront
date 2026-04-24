@@ -6,7 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 
-from catalog.models import Product, ProductVariant, StorePage
+from catalog.models import Product, ProductVariant, StorePage, ProductImage, ProductVideo
 from connectors.models import ChannelAccount, ExternalListing
 from orders.models import FulfillmentUpdate, Order
 
@@ -42,7 +42,7 @@ class ProductCreateForm(forms.ModelForm):
 class DefaultVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'is_active')
+        fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_active')
 
 
 class StorePageCreateForm(forms.ModelForm):
@@ -212,3 +212,65 @@ class OrderRefundForm(forms.Form):
             'class': 'form-checkbox',
         })
     )
+
+
+class ProductImageForm(forms.ModelForm):
+    """Form for uploading product images (max 5 per product)."""
+    
+    class Meta:
+        model = ProductImage
+        fields = ('image', 'alt_text', 'sort_order')
+        widgets = {
+            'image': forms.FileInput(attrs={
+                'class': 'form-input',
+                'accept': 'image/*',
+            }),
+            'alt_text': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Descriptive text for accessibility',
+            }),
+            'sort_order': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'min': 0,
+            }),
+        }
+
+
+class ProductVideoForm(forms.ModelForm):
+    """Form for uploading a single product video."""
+    
+    class Meta:
+        model = ProductVideo
+        fields = ('video', 'thumbnail', 'title')
+        widgets = {
+            'video': forms.FileInput(attrs={
+                'class': 'form-input',
+                'accept': 'video/mp4,video/webm,video/ogg',
+                'help_text': 'Supported: MP4, WebM, Ogg (max 100MB)',
+            }),
+            'thumbnail': forms.FileInput(attrs={
+                'class': 'form-input',
+                'accept': 'image/*',
+            }),
+            'title': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g., "Product demo" or "How to use"',
+            }),
+        }
+
+
+class ProductImageFormSet(forms.BaseInlineFormSet):
+    """Validate max 5 images per product."""
+    
+    def clean(self):
+        super().clean()
+        if self.form_errors:
+            return
+        
+        image_count = 0
+        for form in self.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                image_count += 1
+        
+        if image_count > 5:
+            raise ValidationError('Maximum 5 images per product.')

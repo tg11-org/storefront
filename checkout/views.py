@@ -30,9 +30,10 @@ class CheckoutView(LoginRequiredMixin, FormView):
         unavailable_items = [
             item for item in self.cart.items.select_related('product', 'variant')
             if item.quantity > item.variant.stock_quantity
+            or item.quantity > item.variant.effective_max_order_quantity
         ]
         if unavailable_items:
-            messages.error(request, 'One or more cart items exceed available stock. Update your cart before checkout.')
+            messages.error(request, 'One or more cart items exceed stock or per-order quantity limits. Update your cart before checkout.')
             return redirect('cart:detail')
         return super().dispatch(request, *args, **kwargs)
 

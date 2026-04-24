@@ -16,17 +16,28 @@
       <article class="stack-card">
         <div>
           <h2>{{ item.product.name }}</h2>
-          <p>{{ item.variant.title }} ? Fulfilled via {{ item.product.get_default_source_display }}</p>
+          <p>{{ item.variant.title }} · Fulfilled via {{ item.product.get_default_source_display }}</p>
+          
+          {% if item.quantity > item.variant.effective_max_order_quantity %}
+            <p class="warning-text">⚠️ Quantity exceeds allowed maximum ({{ item.variant.effective_max_order_quantity }} max per order)</p>
+          {% elif item.quantity > item.variant.stock_quantity %}
+            <p class="warning-text">⚠️ Quantity exceeds available stock ({{ item.variant.stock_quantity }} available)</p>
+          {% else %}
+            <p class="text-muted"><small>{{ item.variant.stock_quantity }} in stock{% if item.variant.max_order_quantity %}, max {{ item.variant.max_order_quantity }} per order{% endif %}</small></p>
+          {% endif %}
+          
           {% if item.custom_request %}
             <p><strong>Custom request:</strong> {{ item.custom_request }}</p>
           {% endif %}
           <strong>${{ item.line_total }}</strong>
         </div>
         <div class="cart-actions">
-          <form method="post" action="{% url 'cart:update_item' item.pk %}">
+          <form method="post" action="{% url 'cart:update_item' item.pk %}" class="quantity-form">
             {% csrf_token %}
-            <input type="number" name="quantity" min="0" value="{{ item.quantity }}">
-            <button class="button" type="submit">Update</button>
+            <div class="quantity-wrapper">
+              <input type="number" name="quantity" min="0" max="{{ item.variant.effective_max_order_quantity }}" value="{{ item.quantity }}" class="quantity-input">
+              <button class="button" type="submit">Update</button>
+            </div>
           </form>
           <form method="post" action="{% url 'cart:remove_item' item.pk %}">
             {% csrf_token %}
@@ -46,4 +57,138 @@
     <a class="button primary" href="{% url 'catalog:product_list' %}">Start shopping</a>
   </section>
 {% endif %}
+
+<style>
+  .stack-list {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stack-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    padding: 1.5rem;
+    background-color: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #eee);
+    border-radius: 8px;
+  }
+
+  .stack-card h2 {
+    margin: 0 0 0.5rem 0;
+  }
+
+  .stack-card p {
+    margin: 0.25rem 0;
+  }
+
+  .text-muted {
+    color: var(--text-muted, #666);
+    font-size: 0.875rem;
+  }
+
+  .warning-text {
+    color: #d97706;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .cart-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 250px;
+  }
+
+  .quantity-form {
+    display: contents;
+  }
+
+  .quantity-wrapper {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+  }
+
+  .quantity-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .button {
+    padding: 0.5rem 1rem;
+    background-color: var(--accent, #0f766e);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .button:hover {
+    opacity: 0.9;
+  }
+
+  .button.ghost {
+    background-color: transparent;
+    color: var(--text-primary, #333);
+    border: 1px solid var(--border-color, #ddd);
+  }
+
+  .summary-card {
+    padding: 1.5rem;
+    background-color: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #eee);
+    border-radius: 8px;
+    text-align: right;
+  }
+
+  .summary-card p {
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-card h2 {
+    margin: 0;
+    font-size: 1.75rem;
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted, #666);
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .stack-card {
+      grid-template-columns: 1fr;
+    }
+
+    .quantity-wrapper {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .cart-actions {
+      flex-direction: row;
+      min-width: auto;
+    }
+  }
+</style>
 {% endblock %}

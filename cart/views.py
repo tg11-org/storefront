@@ -21,6 +21,19 @@ def _has_stock(variant: ProductVariant, quantity: int) -> bool:
     return quantity <= variant.stock_quantity
 
 
+def _within_order_limit(variant: ProductVariant, quantity: int) -> bool:
+    return quantity <= variant.effective_max_order_quantity
+
+
+def _quantity_error_message(variant: ProductVariant, product: Product) -> str:
+    if variant.max_order_quantity is not None and variant.max_order_quantity < variant.stock_quantity:
+        return (
+            f'Maximum {variant.max_order_quantity} per order for {product.name}. '
+            f'{variant.stock_quantity} currently in stock.'
+        )
+    return f'Only {variant.stock_quantity} available for {product.name}.'
+
+
 def get_or_create_cart(request, create: bool = True) -> Cart | None:
     if request.user.is_authenticated:
         cart = Cart.objects.filter(user=request.user, checked_out_at__isnull=True).first()
@@ -50,8 +63,9 @@ def add_to_cart(request, slug):
     variant = get_object_or_404(ProductVariant, pk=variant_id, product=product, is_active=True) if variant_id else product.primary_variant
     custom_request = request.POST.get('custom_request', '').strip() if product.allow_custom_requests else ''
     cart = get_or_create_cart(request)
-    if not variant or not _has_stock(variant, _requested_quantity(cart, variant, quantity)):
-        messages.error(request, f'Only {variant.stock_quantity if variant else 0} available for {product.name}.')
+    requested_total = _requested_quantity(cart, variant, quantity) if variant else 0
+    if not variant or not _has_stock(variant, requested_total) or not _within_order_limit(variant, requested_total):
+        messages.error(request, _quantity_error_message(variant, product) if variant else f'Only 0 available for {product.name}.')
         return redirect(product.get_absolute_url())
     item, created = CartItem.objects.get_or_create(cart=cart, variant=variant, custom_request=custom_request, defaults={'product': product, 'quantity': quantity})
     if not created:
@@ -69,8 +83,11 @@ def update_cart_item(request, pk):
     if quantity == 0:
         item.delete()
         messages.info(request, 'Item removed from your cart.')
-    elif not _has_stock(item.variant, _requested_quantity(cart, item.variant, quantity, exclude_item=item)):
-        messages.error(request, f'Only {item.variant.stock_quantity} available for {item.product.name}.')
+    elif (
+        not _has_stock(item.variant, _requested_quantity(cart, item.variant, quantity, exclude_item=item))
+        or not _within_order_limit(item.variant, _requested_quantity(cart, item.variant, quantity, exclude_item=item))
+    ):
+        messages.error(request, _quantity_error_message(item.variant, item.product))
     else:
         item.quantity = quantity
         item.save(update_fields=['quantity', 'updated_at'])
