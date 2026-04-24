@@ -54,6 +54,47 @@ git pull
 docker compose up --build -d
 ```
 
+## systemd service
+
+If you want the stack to behave like your other host-managed services, install the bundled unit at `deploy/systemd/storefront.service`.
+
+It runs `docker compose` in the foreground under `systemd`, which means:
+
+- `systemctl start storefront`
+- `systemctl stop storefront`
+- `systemctl restart storefront`
+- `systemctl status storefront`
+- `journalctl -u storefront -f`
+
+all work in the usual way.
+
+### Install on the host
+
+Assuming the repo lives at `/var/www/storefront`:
+
+```bash
+sudo cp /var/www/storefront/deploy/systemd/storefront.service /etc/systemd/system/storefront.service
+sudo systemctl daemon-reload
+sudo systemctl enable storefront
+sudo systemctl start storefront
+```
+
+If your repo is not at `/var/www/storefront`, edit the `WorkingDirectory=` line first.
+
+### Day-to-day commands
+
+```bash
+sudo systemctl restart storefront
+sudo systemctl status storefront
+sudo journalctl -u storefront -f
+```
+
+For image/config changes after a `git pull`, a `restart` is enough because `ExecStart` runs:
+
+```text
+docker compose up --build --remove-orphans
+```
+
 ## Deployment assumptions
 
 This Compose file uses `network_mode: host` on Linux so Gunicorn can bind directly to `127.6.0.10:8000` and PostgreSQL can stay loopback-only on `127.6.0.11:55432`. That keeps the web app off `0.0.0.0` and avoids public database exposure.

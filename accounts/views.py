@@ -17,7 +17,8 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        if request.user.profile.stripe_customer_id:
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.stripe_customer_id:
             sync_saved_payment_methods(request.user)
         return super().dispatch(request, *args, **kwargs)
 

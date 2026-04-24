@@ -1,0 +1,19 @@
+[Unit]
+Description=TG11 Storefront Docker Compose Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/storefront
+ExecStart=/usr/bin/docker compose up --build --remove-orphans
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=0
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
