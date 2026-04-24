@@ -54,6 +54,24 @@ git pull
 docker compose up --build -d
 ```
 
+## SMTP sanity check
+
+Signup sends verification email immediately. If SMTP is misconfigured, signup can fail.
+
+Run this before restarting production after `.env` email changes:
+
+```bash
+docker compose exec web python manage.py check_smtp
+```
+
+Optional live send test:
+
+```bash
+docker compose exec web python manage.py check_smtp --to your@email.tld
+```
+
+`EMAIL_HOST` must be a hostname only (for example `mail.tg11.org`), not a URL such as `https://mail.tg11.org`.
+
 ## systemd service
 
 If you want the stack to behave like your other host-managed services, install the bundled unit at `deploy/systemd/storefront.service`.
