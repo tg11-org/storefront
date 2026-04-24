@@ -93,6 +93,14 @@ input, select, textarea {
 .errorlist, .error-list { color: var(--danger); }
 .auth-card { max-width: 540px; margin: 0 auto; }
 .prose p { line-height: 1.7; }
+.dashboard-form { display: grid; gap: 1.25rem; }
+.dashboard-form h2 { margin-top: 0; }
+.dashboard-sections { margin-top: 1rem; }
+.compact-header { grid-template-columns: 1fr auto; align-items: center; margin-bottom: 1rem; }
+.field-block { display: grid; gap: 0.25rem; }
+.field-block small, .checkbox-row + small { color: var(--muted); font-size: 0.85rem; }
+.field-block textarea { min-height: 8rem; resize: vertical; }
+select[multiple] { min-height: 12rem; }
 
 @media (max-width: 720px) {
   .brand-row { grid-template-columns: 1fr; }

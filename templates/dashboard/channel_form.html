@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Add Channel | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Vendor accounts</p>
+    <h1>Add channel account</h1>
+    <p class="lead">Create the vendor profile that products and external listings can attach to.</p>
+  </div>
+  <a class="button" href="{% url 'dashboard:manage' %}">Back to dashboard</a>
+</section>
+
+<div class="dashboard-grid">
+  <form method="post" class="detail-card dashboard-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="error-list">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+      {% for field in form %}
+        <label class="{% if field.field.widget.input_type == 'checkbox' %}checkbox-row{% else %}field-block{% endif %}">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            {{ field }} <span>{{ field.label }}</span>
+          {% else %}
+            <span>{{ field.label }}</span>
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+          {% if field.errors %}<span class="error-list">{{ field.errors }}</span>{% endif %}
+        </label>
+      {% endfor %}
+    </div>
+    <div class="cart-actions">
+      <button class="button primary" type="submit">Create channel</button>
+      <a class="button" href="{% url 'dashboard:manage' %}">Cancel</a>
+    </div>
+  </form>
+
+  <aside class="stack-card">
+    <h2>Provider notes</h2>
+    <div class="stack-list">
+      {% for provider in provider_notes %}
+        <article class="mini-card">
+          <strong>{{ provider.name }}</strong>
+          <p>{{ provider.details }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

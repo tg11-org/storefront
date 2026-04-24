@@ -28,4 +28,66 @@
     </article>
   {% endfor %}
 </div>
+
+<div class="dashboard-grid dashboard-sections">
+  <section class="stack-card">
+    <div class="section-header compact-header">
+      <h2>Products</h2>
+      <a href="{% url 'dashboard:product_create' %}">Add</a>
+    </div>
+    {% for product in recent_products %}
+      <article class="mini-card">
+        <strong>{{ product.name }}</strong>
+        <p>{{ product.fulfillment_label }} · ${{ product.display_price }}</p>
+      </article>
+    {% empty %}
+      <p>No products yet.</p>
+    {% endfor %}
+  </section>
+
+  <section class="stack-card">
+    <div class="section-header compact-header">
+      <h2>Pages</h2>
+      <a href="{% url 'dashboard:page_create' %}">Add</a>
+    </div>
+    {% for page in recent_pages %}
+      <article class="mini-card">
+        <strong>{{ page.title }}</strong>
+        <p>{% if page.is_published %}Published{% else %}Draft{% endif %} · {{ page.products.count }} products</p>
+      </article>
+    {% empty %}
+      <p>No pages yet.</p>
+    {% endfor %}
+  </section>
+
+  <section class="stack-card">
+    <div class="section-header compact-header">
+      <h2>Channels</h2>
+      <a href="{% url 'dashboard:channel_create' %}">Add</a>
+    </div>
+    {% for channel in channel_accounts %}
+      <article class="mini-card">
+        <strong>{{ channel.name }}</strong>
+        <p>{{ channel.get_provider_display }} · {{ channel.account_identifier }}</p>
+      </article>
+    {% empty %}
+      <p>No channel accounts yet.</p>
+    {% endfor %}
+  </section>
+
+  <section class="stack-card">
+    <div class="section-header compact-header">
+      <h2>Listing links</h2>
+      <a href="{% url 'dashboard:listing_create' %}">Add</a>
+    </div>
+    {% for listing in external_listings %}
+      <article class="mini-card">
+        <strong>{{ listing.product.name }}</strong>
+        <p>{{ listing.get_provider_display }} · {{ listing.external_listing_id }}</p>
+      </article>
+    {% empty %}
+      <p>No external listings yet.</p>
+    {% endfor %}
+  </section>
+</div>
 {% endblock %}
