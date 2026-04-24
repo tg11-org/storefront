@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+import logging
 
 import stripe
 from django.conf import settings
@@ -15,6 +16,8 @@ from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
 
 from .models import PaymentRecord, SavedPaymentMethodRef
+
+logger = logging.getLogger(__name__)
 
 
 class StripeConfigurationError(RuntimeError):
@@ -230,12 +233,18 @@ def finalize_order_from_checkout_session(session_id: str):
             },
         )
         if order.user and not was_paid:
-            sync_saved_payment_methods(order.user)
+            try:
+                sync_saved_payment_methods(order.user)
+            except stripe.error.StripeError:
+                logger.exception('Unable to sync saved payment methods for order %s.', order.number)
         if order.cart_id and not was_paid:
             Cart.objects.filter(pk=order.cart_id).update(checked_out_at=timezone.now())
             order.cart.items.all().delete()
         if not was_paid:
-            decrement_internal_inventory(order)
-            send_internal_fulfillment_email(order)
-            queue_external_fulfillment_for_order(order)
+            try:
+                decrement_internal_inventory(order)
+                send_internal_fulfillment_email(order)
+                queue_external_fulfillment_for_order(order)
+            except Exception:
+                logger.exception('Unable to complete post-payment fulfillment side effects for order %s.', order.number)
     return order

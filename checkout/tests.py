@@ -42,3 +42,13 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
         self.assertEqual(order.items.get().sku, 'TEE-001')
         self.assertEqual(order.items.get().custom_request, 'Make it extra soft')
+
+    @patch('checkout.views.finalize_order_from_checkout_session')
+    def test_success_page_handles_finalize_failure(self, mock_finalize_order):
+        order = Order.objects.create(user=self.user, email=self.user.email)
+        mock_finalize_order.side_effect = RuntimeError('fulfillment side effect failed')
+
+        response = self.client.get(reverse('checkout:success'), {'order': order.number, 'session_id': 'cs_test_123'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, order.number)

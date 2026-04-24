@@ -1,6 +1,7 @@
 import stripe
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic import FormView, TemplateView
@@ -162,15 +163,23 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        order = Order.objects.filter(number=self.request.GET.get('order'), user=self.request.user).first()
+        order = self._get_order()
         session_id = self.request.GET.get('session_id')
         if session_id and session_id != '{CHECKOUT_SESSION_ID}':
             try:
                 order = finalize_order_from_checkout_session(session_id) or order
             except stripe.error.StripeError as exc:
                 messages.error(self.request, f'Unable to verify the Stripe checkout session: {exc}')
+            except Exception:
+                messages.error(self.request, 'Stripe confirmed the redirect, but TG11 Shop could not finish local order processing yet. The webhook can still complete the order shortly.')
         context['order'] = order
         return context
+
+    def _get_order(self):
+        order = Order.objects.filter(number=self.request.GET.get('order')).select_related('user').first()
+        if order and order.user_id and order.user_id != self.request.user.pk:
+            raise PermissionDenied
+        return order
 
 
 class CheckoutCancelView(LoginRequiredMixin, TemplateView):

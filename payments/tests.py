@@ -142,3 +142,30 @@ class StripeCheckoutFinalizationTests(TestCase):
         self.assertIn('TG11 Candle', mail.outbox[0].body)
         self.assertIn('Please include gold flakes.', mail.outbox[0].body)
         self.assertIn('123 Market St', mail.outbox[0].body)
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_realish_value')
+    @patch('payments.services.decrement_internal_inventory')
+    @patch('payments.services.get_stripe_client')
+    def test_finalize_marks_order_paid_even_if_fulfillment_side_effect_fails(self, mock_get_stripe_client, mock_decrement_inventory):
+        order = Order.objects.create(
+            email='buyer@example.com',
+            status=Order.Status.PENDING_PAYMENT,
+            source=Order.Source.INTERNAL,
+            grand_total='18.00',
+        )
+        mock_decrement_inventory.side_effect = RuntimeError('inventory failed')
+        session = SimpleNamespace(
+            id='cs_test_789',
+            metadata={'order_number': order.number},
+            client_reference_id=order.number,
+            payment_status='paid',
+            payment_intent='pi_test_789',
+        )
+        mock_client = Mock()
+        mock_client.checkout.Session.retrieve.return_value = session
+        mock_get_stripe_client.return_value = mock_client
+
+        finalized_order = finalize_order_from_checkout_session(session.id)
+
+        self.assertEqual(finalized_order.status, Order.Status.PAID)
+        self.assertEqual(finalized_order.stripe_payment_intent_id, 'pi_test_789')
