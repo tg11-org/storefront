@@ -15,3 +15,6 @@ class PopCustomsConnector(BaseConnector):
 
     def push_inventory(self, listing, quantity: int) -> dict:
         raise NotImplementedError('TODO: Implement PopCustoms inventory sync.')
+
+    def submit_order(self, order, items: list[dict]) -> dict:
+        raise NotImplementedError('TODO: Implement PopCustoms order placement once the API contract is confirmed.')

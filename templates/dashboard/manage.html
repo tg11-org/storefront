@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Manage Storefront | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Superuser tools</p>
+    <h1>Manage storefront</h1>
+    <p class="lead">Create products, publish pages, map vendor listings, and monitor paid-order fulfillment handoffs.</p>
+  </div>
+  <a class="button" href="{% url 'admin:index' %}">Open full admin</a>
+</section>
+
+<div class="metric-grid">
+  <article class="metric-card"><span>Products</span><strong>{{ stats.products }}</strong></article>
+  <article class="metric-card"><span>Published pages</span><strong>{{ stats.published_pages }}</strong></article>
+  <article class="metric-card"><span>Channel accounts</span><strong>{{ stats.channel_accounts }}</strong></article>
+  <article class="metric-card"><span>External listings</span><strong>{{ stats.external_listings }}</strong></article>
+  <article class="metric-card"><span>Queued jobs</span><strong>{{ stats.queued_jobs }}</strong></article>
+  <article class="metric-card"><span>Paid orders</span><strong>{{ stats.paid_orders }}</strong></article>
+</div>
+
+<div class="card-grid">
+  {% for shortcut in shortcuts %}
+    <article class="product-card">
+      <h2>{{ shortcut.label }}</h2>
+      <p>{{ shortcut.description }}</p>
+      <a class="button primary" href="{{ shortcut.url }}">Open</a>
+    </article>
+  {% endfor %}
+</div>
+{% endblock %}

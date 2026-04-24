@@ -155,7 +155,7 @@ systemctl reload apache2
 - `DB_HOST=127.6.0.11`
 - `DB_PORT=55432`
 - `GUNICORN_BIND=127.6.0.10:8000`
-- `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_ACCOUNT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 ## Stripe integration
 
@@ -163,6 +163,7 @@ systemctl reload apache2
 - Saved payment methods use Stripe customer and payment method references only.
 - Local records are synced from Stripe via webhook callbacks or explicit refresh in the account dashboard.
 - No raw card data is stored in Django.
+- This project is wired for the `tg11.org` Stripe account in `.env`; replace the Stripe key placeholders with test or live keys from the matching Dashboard account before taking payments.
 
 ### Recommended webhook
 

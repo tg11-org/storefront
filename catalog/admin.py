@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Product, ProductImage, ProductVariant
+from .models import Product, ProductImage, ProductVariant, StorePage
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -32,3 +32,12 @@ class ProductVariantAdmin(admin.ModelAdmin):
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
     list_display = ('product', 'variant', 'sort_order')
+
+
+@admin.register(StorePage)
+class StorePageAdmin(admin.ModelAdmin):
+    list_display = ('title', 'slug', 'is_published', 'sort_order', 'updated_at')
+    list_filter = ('is_published',)
+    prepopulated_fields = {'slug': ('title',)}
+    search_fields = ('title', 'slug', 'summary', 'body')
+    filter_horizontal = ('products',)

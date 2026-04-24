@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from accounts.models import CustomerProfile
 from cart.models import Cart
+from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
 
 from .models import PaymentRecord, SavedPaymentMethodRef
@@ -17,8 +18,12 @@ class StripeConfigurationError(RuntimeError):
     pass
 
 
+def is_configured_stripe_value(value: str | None) -> bool:
+    return bool(value and 'replace_me' not in value)
+
+
 def get_stripe_client() -> stripe:
-    if not settings.STRIPE_SECRET_KEY:
+    if not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         raise StripeConfigurationError('Stripe secret key is not configured.')
     stripe.api_key = settings.STRIPE_SECRET_KEY
     return stripe
@@ -108,7 +113,7 @@ def create_setup_session(user, success_url: str, cancel_url: str):
 
 def sync_saved_payment_methods(user):
     profile = getattr(user, 'profile', None)
-    if not profile or not profile.stripe_customer_id or not settings.STRIPE_SECRET_KEY:
+    if not profile or not profile.stripe_customer_id or not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         return SavedPaymentMethodRef.objects.none()
 
     client = get_stripe_client()
@@ -135,7 +140,7 @@ def sync_saved_payment_methods(user):
 
 
 def finalize_order_from_checkout_session(session_id: str):
-    if not settings.STRIPE_SECRET_KEY:
+    if not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         return None
     client = get_stripe_client()
     session = client.checkout.Session.retrieve(session_id)
@@ -170,4 +175,5 @@ def finalize_order_from_checkout_session(session_id: str):
         if order.cart_id:
             Cart.objects.filter(pk=order.cart_id).update(checked_out_at=timezone.now())
             order.cart.items.all().delete()
+        queue_external_fulfillment_for_order(order)
     return order

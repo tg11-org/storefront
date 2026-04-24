@@ -42,3 +42,7 @@ class EtsyConnector(BaseConnector):
             'listing_id': getattr(listing, 'external_listing_id', ''),
             'quantity': quantity,
         }
+
+    def submit_order(self, order, items: list[dict]) -> dict:
+        self.validate_configuration()
+        return {'status': 'todo', 'provider': self.provider, 'order_number': order.number, 'items': items}

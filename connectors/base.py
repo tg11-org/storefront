@@ -22,3 +22,7 @@ class BaseConnector(ABC):
     @abstractmethod
     def push_inventory(self, listing, quantity: int) -> dict:
         raise NotImplementedError
+
+    @abstractmethod
+    def submit_order(self, order, items: list[dict]) -> dict:
+        raise NotImplementedError

@@ -1,6 +1,6 @@
 from django.views.generic import DetailView, ListView, TemplateView
 
-from .models import Product
+from .models import Product, StorePage
 
 
 class HomeView(TemplateView):
@@ -29,3 +29,12 @@ class ProductDetailView(DetailView):
 
     def get_queryset(self):
         return Product.objects.filter(is_active=True).prefetch_related('variants', 'images')
+
+
+class StorePageDetailView(DetailView):
+    model = StorePage
+    slug_field = 'slug'
+    template_name = 'catalog/store_page_detail.html'
+
+    def get_queryset(self):
+        return StorePage.objects.filter(is_published=True).prefetch_related('products__variants', 'products__images')

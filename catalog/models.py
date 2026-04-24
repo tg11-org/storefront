@@ -91,3 +91,29 @@ class ProductImage(models.Model):
 
     def __str__(self) -> str:
         return self.alt_text or f'Image for {self.product.name}'
+
+
+class StorePage(models.Model):
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, max_length=255)
+    summary = models.CharField(max_length=255, blank=True)
+    body = models.TextField(blank=True)
+    products = models.ManyToManyField(Product, blank=True, related_name='store_pages')
+    is_published = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'title']
+
+    def __str__(self) -> str:
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('catalog:page_detail', args=[self.slug])

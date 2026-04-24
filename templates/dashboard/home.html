@@ -6,7 +6,12 @@
     <p class="eyebrow">Back office</p>
     <h1>Operations dashboard</h1>
   </div>
-  <a class="button" href="{% url 'admin:index' %}">Open Django admin</a>
+  <div class="cart-actions">
+    {% if request.user.is_superuser %}
+      <a class="button primary" href="{% url 'dashboard:manage' %}">Manage storefront</a>
+    {% endif %}
+    <a class="button" href="{% url 'admin:index' %}">Open Django admin</a>
+  </div>
 </section>
 <div class="metric-grid">
   <article class="metric-card"><span>Orders</span><strong>{{ metrics.order_count }}</strong></article>

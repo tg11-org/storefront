@@ -15,6 +15,7 @@ from .services import (
     create_setup_session,
     finalize_order_from_checkout_session,
     get_stripe_client,
+    is_configured_stripe_value,
     sync_saved_payment_methods,
 )
 
@@ -42,7 +43,7 @@ def setup_success(request):
 
 @csrf_exempt
 def stripe_webhook(request):
-    if not settings.STRIPE_WEBHOOK_SECRET or not settings.STRIPE_SECRET_KEY:
+    if not is_configured_stripe_value(settings.STRIPE_WEBHOOK_SECRET) or not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         return HttpResponse(status=503)
 
     payload = request.body

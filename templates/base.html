@@ -41,7 +41,7 @@
           <button id="theme-toggle" type="button" class="button ghost theme-toggle" aria-label="Toggle color theme">Theme: dark</button>
         </div>
       </div>
-      <div class="hero-ribbon">Production-ready Django storefront for <strong>shop.tg11.org</strong></div>
+      <div class="hero-ribbon">TG11 Shop control deck: products, checkout, and fulfillment in one place.</div>
     </header>
 
     {% if messages %}
@@ -57,7 +57,7 @@
     </main>
 
     <footer class="site-footer">
-      <p>Stripe test mode ready. Apache reverse proxies traffic to the Django app on the 127.6.x.x loopback range.</p>
+      <p>Payments run through Stripe Checkout. Fulfillment jobs queue after payment so vendor connectors can take over when credentials are ready.</p>
     </footer>
   </div>
   <script>

@@ -6,6 +6,7 @@ from django.views.generic import FormView, TemplateView
 
 from accounts.models import Address
 from cart.views import get_or_create_cart
+from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
 from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
 
@@ -124,10 +125,27 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 quantity=cart_item.quantity,
                 unit_price=cart_item.variant.price,
                 source=cart_item.product.default_source,
+                external_listing_id=self._external_listing_id(cart_item),
             )
             for cart_item in cart_items
         ])
         return order
+
+    def _external_listing_id(self, cart_item):
+        if cart_item.product.default_source == Order.Source.INTERNAL:
+            return ''
+        listing = ExternalListing.objects.filter(
+            provider=cart_item.product.default_source,
+            product=cart_item.product,
+            variant=cart_item.variant,
+        ).first()
+        if not listing:
+            listing = ExternalListing.objects.filter(
+                provider=cart_item.product.default_source,
+                product=cart_item.product,
+                variant__isnull=True,
+            ).first()
+        return listing.external_listing_id if listing else ''
 
 
 class CheckoutSuccessView(LoginRequiredMixin, TemplateView):

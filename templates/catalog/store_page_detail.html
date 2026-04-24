@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ object.title }} | TG11 Shop{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">TG11 page</p>
+    <h1>{{ object.title }}</h1>
+    {% if object.summary %}<p class="lead">{{ object.summary }}</p>{% endif %}
+  </div>
+</section>
+{% if object.body %}
+  <article class="detail-card prose">{{ object.body|linebreaks }}</article>
+{% endif %}
+{% if object.products.exists %}
+  <section class="section-header">
+    <h2>Linked products</h2>
+  </section>
+  <div class="card-grid">
+    {% for product in object.products.all %}
+      <article class="product-card">
+        <p class="pill">Fulfilled via {{ product.fulfillment_label }}</p>
+        <h3><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+        <p>{{ product.short_description|default:product.description|truncatechars:120 }}</p>
+        <div class="card-meta">
+          <strong>${{ product.display_price }}</strong>
+          <a href="{{ product.get_absolute_url }}">Order</a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}
