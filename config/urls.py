@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from config.views import healthcheck
+from config.views import favicon, healthcheck
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -16,6 +16,8 @@ urlpatterns = [
     path('connectors/', include(('connectors.urls', 'connectors'), namespace='connectors')),
     path('dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),
     path('health/', healthcheck, name='healthcheck'),
+    path('favicon.ico', favicon, {'filename': 'favicon.ico'}, name='favicon_ico'),
+    path('favicon.png', favicon, {'filename': 'favicon.png'}, name='favicon_png'),
     path('', include(('catalog.urls', 'catalog'), namespace='catalog')),
 ]
 

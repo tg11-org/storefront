@@ -1,0 +1,14 @@
+[Unit]
+Description=TG11 Storefront Web Container Logs
+Requires=storefront.service
+After=storefront.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/storefront
+ExecStart=/usr/bin/docker compose logs --no-color --tail=200 -f web
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,9 +1,29 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+
+def load_env_file() -> None:
+    if 'test' in sys.argv:
+        return
+    env_path = BASE_DIR / '.env'
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        name, value = line.split('=', 1)
+        name = name.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(name, value)
+
+
+load_env_file()
 
 
 def env(name: str, default: str | None = None) -> str | None:

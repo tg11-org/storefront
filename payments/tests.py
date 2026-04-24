@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import stripe
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -8,7 +10,7 @@ from catalog.models import Product, ProductVariant
 from connectors.models import ChannelAccount, SyncJob
 from orders.models import Order, OrderItem
 
-from .services import StripeConfigurationError, finalize_order_from_checkout_session, get_stripe_client, is_configured_stripe_value
+from .services import StripeConfigurationError, create_setup_session, finalize_order_from_checkout_session, get_stripe_client, is_configured_stripe_value
 
 
 class StripeConfigurationTests(TestCase):
@@ -27,6 +29,32 @@ class StripeConfigurationTests(TestCase):
     def test_webhook_returns_unavailable_when_stripe_uses_placeholders(self):
         response = self.client.post(reverse('payments:stripe_webhook'), data=b'{}', content_type='application/json')
         self.assertEqual(response.status_code, 503)
+
+    @patch('payments.views.create_setup_session')
+    def test_add_payment_method_handles_stripe_errors(self, mock_create_setup_session):
+        user = get_user_model().objects.create_user(email='buyer@example.com', password='StrongPass123!')
+        self.client.login(email='buyer@example.com', password='StrongPass123!')
+        mock_create_setup_session.side_effect = stripe.error.PermissionError('Missing permission')
+
+        response = self.client.get(reverse('payments:add_method'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('accounts:dashboard'))
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_realish_value', STRIPE_CURRENCY='usd')
+    @patch('payments.services.get_stripe_client')
+    def test_create_setup_session_sends_currency(self, mock_get_stripe_client):
+        user = get_user_model().objects.create_user(email='buyer@example.com', password='StrongPass123!')
+        mock_client = Mock()
+        mock_client.Customer.create.return_value = SimpleNamespace(id='cus_test_123')
+        mock_client.checkout.Session.create.return_value = SimpleNamespace(url='https://checkout.stripe.test/setup')
+        mock_get_stripe_client.return_value = mock_client
+
+        create_setup_session(user, 'https://shop.tg11.org/setup/success', 'https://shop.tg11.org/account/')
+
+        _, kwargs = mock_client.checkout.Session.create.call_args
+        self.assertEqual(kwargs['mode'], 'setup')
+        self.assertEqual(kwargs['currency'], 'usd')
 
 
 class StripeCheckoutFinalizationTests(TestCase):

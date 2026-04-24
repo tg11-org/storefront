@@ -1,3 +1,4 @@
+import stripe
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
@@ -44,7 +45,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 self.request.build_absolute_uri(reverse('checkout:success')) + f'?order={order.number}&session_id={{CHECKOUT_SESSION_ID}}',
                 self.request.build_absolute_uri(reverse('checkout:cancel')) + f'?order={order.number}',
             )
-        except StripeConfigurationError as exc:
+        except (StripeConfigurationError, stripe.error.StripeError) as exc:
             order.status = Order.Status.FAILED
             order.save(update_fields=['status', 'updated_at'])
             form.add_error(None, str(exc))
@@ -156,7 +157,10 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
         order = Order.objects.filter(number=self.request.GET.get('order'), user=self.request.user).first()
         session_id = self.request.GET.get('session_id')
         if session_id and session_id != '{CHECKOUT_SESSION_ID}':
-            order = finalize_order_from_checkout_session(session_id) or order
+            try:
+                order = finalize_order_from_checkout_session(session_id) or order
+            except stripe.error.StripeError as exc:
+                messages.error(self.request, f'Unable to verify the Stripe checkout session: {exc}')
         context['order'] = order
         return context
 

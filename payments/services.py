@@ -104,6 +104,7 @@ def create_setup_session(user, success_url: str, cancel_url: str):
     return client.checkout.Session.create(
         mode='setup',
         customer=customer_id,
+        currency=settings.STRIPE_CURRENCY,
         client_reference_id=str(user.pk),
         metadata={'user_id': str(user.pk), 'purpose': 'save_payment_method'},
         success_url=success_url,

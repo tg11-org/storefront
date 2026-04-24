@@ -31,12 +31,19 @@ def add_payment_method(request):
     except StripeConfigurationError as exc:
         messages.error(request, str(exc))
         return redirect('accounts:dashboard')
+    except stripe.error.StripeError as exc:
+        messages.error(request, f'Unable to start Stripe payment method setup: {exc}')
+        return redirect('accounts:dashboard')
     return redirect(session.url, permanent=False)
 
 
 @login_required
 def setup_success(request):
-    sync_saved_payment_methods(request.user)
+    try:
+        sync_saved_payment_methods(request.user)
+    except stripe.error.StripeError as exc:
+        messages.error(request, f'Unable to sync payment methods from Stripe: {exc}')
+        return redirect('accounts:dashboard')
     messages.success(request, 'Payment method synced from Stripe.')
     return redirect('accounts:dashboard')
 

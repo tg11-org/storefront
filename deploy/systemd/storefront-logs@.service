@@ -1,0 +1,14 @@
+[Unit]
+Description=TG11 Storefront Docker Compose Logs for %i
+Requires=storefront.service
+After=storefront.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/storefront
+ExecStart=/usr/bin/docker compose logs --no-color --tail=200 -f %i
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

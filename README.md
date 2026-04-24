@@ -86,15 +86,29 @@ It runs `docker compose` in the foreground under `systemd`, which means:
 
 all work in the usual way.
 
+Use the templated log unit for any Docker Compose service:
+
+```bash
+sudo systemctl enable --now storefront-logs@web
+sudo systemctl enable --now storefront-logs@db
+sudo journalctl -u storefront-logs@web -f
+sudo journalctl -u storefront-logs@db -f
+```
+
 ### Install on the host
 
 Assuming the repo lives at `/var/www/storefront`:
 
 ```bash
 sudo cp /var/www/storefront/deploy/systemd/storefront.service /etc/systemd/system/storefront.service
+sudo cp /var/www/storefront/deploy/systemd/storefront-logs@.service /etc/systemd/system/storefront-logs@.service
 sudo systemctl daemon-reload
 sudo systemctl enable storefront
+sudo systemctl enable storefront-logs@web
+sudo systemctl enable storefront-logs@db
 sudo systemctl start storefront
+sudo systemctl start storefront-logs@web
+sudo systemctl start storefront-logs@db
 ```
 
 If your repo is not at `/var/www/storefront`, edit the `WorkingDirectory=` line first.
@@ -105,6 +119,10 @@ If your repo is not at `/var/www/storefront`, edit the `WorkingDirectory=` line 
 sudo systemctl restart storefront
 sudo systemctl status storefront
 sudo journalctl -u storefront -f
+sudo systemctl status storefront-logs@web
+sudo systemctl status storefront-logs@db
+sudo journalctl -u storefront-logs@web -f
+sudo journalctl -u storefront-logs@db -f
 ```
 
 For image/config changes after a `git pull`, a `restart` is enough because `ExecStart` runs:
