@@ -102,13 +102,17 @@ Assuming the repo lives at `/var/www/storefront`:
 ```bash
 sudo cp /var/www/storefront/deploy/systemd/storefront.service /etc/systemd/system/storefront.service
 sudo cp /var/www/storefront/deploy/systemd/storefront-logs@.service /etc/systemd/system/storefront-logs@.service
+sudo cp /var/www/storefront/deploy/systemd/storefront-fulfillment.service /etc/systemd/system/storefront-fulfillment.service
+sudo cp /var/www/storefront/deploy/systemd/storefront-fulfillment.timer /etc/systemd/system/storefront-fulfillment.timer
 sudo systemctl daemon-reload
 sudo systemctl enable storefront
 sudo systemctl enable storefront-logs@web
 sudo systemctl enable storefront-logs@db
+sudo systemctl enable storefront-fulfillment.timer
 sudo systemctl start storefront
 sudo systemctl start storefront-logs@web
 sudo systemctl start storefront-logs@db
+sudo systemctl start storefront-fulfillment.timer
 ```
 
 If your repo is not at `/var/www/storefront`, edit the `WorkingDirectory=` line first.
@@ -123,6 +127,8 @@ sudo systemctl status storefront-logs@web
 sudo systemctl status storefront-logs@db
 sudo journalctl -u storefront-logs@web -f
 sudo journalctl -u storefront-logs@db -f
+sudo systemctl status storefront-fulfillment.timer
+sudo journalctl -u storefront-fulfillment -f
 ```
 
 For image/config changes after a `git pull`, a `restart` is enough because `ExecStart` runs:
@@ -174,6 +180,7 @@ systemctl reload apache2
 - `DB_PORT=55432`
 - `GUNICORN_BIND=127.6.0.10:8000`
 - `STRIPE_ACCOUNT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_API_HEADER`
 
 ## Stripe integration
 
@@ -200,8 +207,20 @@ Suggested events:
 
 - `connectors.base.BaseConnector` defines the contract.
 - `connectors.etsy.EtsyConnector` contains a real API scaffold for pulling Etsy receipts.
-- `connectors.popcustoms.PopCustomsConnector` is an explicit TODO placeholder.
+- `connectors.popcustoms.PopCustomsConnector` can submit queued orders to the configured PopCustoms order endpoint.
 - `ChannelAccount`, `ExternalListing`, `ExternalOrder`, and `SyncJob` keep marketplace concerns isolated from core storefront models.
+
+### Fulfillment jobs
+
+Paid external orders create `SyncJob` records. Submit pending jobs manually with:
+
+```bash
+docker compose exec web python manage.py process_fulfillment_jobs --provider popcustoms
+```
+
+PopCustoms channel setup can use `TG11` as the account identifier while the API key and order endpoint remain in `.env`.
+
+To process queued fulfillment jobs automatically, install and start `deploy/systemd/storefront-fulfillment.timer`.
 
 ## Seed data
 
@@ -232,4 +251,4 @@ python manage.py test accounts cart checkout
 3. Add live Stripe keys and webhook signing secret.
 4. Confirm Apache is forwarding `X-Forwarded-Proto https`.
 5. Run `docker compose exec web python manage.py createsuperuser` if you want a non-seeded admin.
-6. Finish PopCustoms API work before enabling that connector in production.
+6. Test PopCustoms fulfillment with a low-risk order before enabling automatic production submissions.

@@ -1,0 +1,9 @@
+[Unit]
+Description=TG11 Storefront Fulfillment Job Processor
+Requires=storefront.service
+After=storefront.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/storefront
+ExecStart=/usr/bin/docker compose exec -T web python manage.py process_fulfillment_jobs --limit 20

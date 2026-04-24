@@ -100,7 +100,7 @@ def channel_create(request):
         messages.success(request, f'{channel.name} channel account was created.')
         return redirect('dashboard:manage')
     provider_notes = [
-        {'name': 'PopCustoms', 'details': 'Use the account or shop identifier from PopCustoms. API placement still needs the final PopCustoms contract before live auto-ordering.'},
+        {'name': 'PopCustoms', 'details': 'Use TG11 as the account identifier. The API key and order endpoint can stay in .env, so config JSON can be empty unless PopCustoms gives extra store settings.'},
         {'name': 'Etsy', 'details': 'Use your shop ID as config JSON, and OAuth tokens when you are ready to sync receipts or listing data.'},
     ]
     return render(

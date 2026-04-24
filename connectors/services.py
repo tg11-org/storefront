@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from orders.models import Order
 
+from .registry import get_connector
 from .models import ChannelAccount, ExternalListing, SyncJob
 
 
@@ -96,3 +97,38 @@ def queue_external_fulfillment_for_order(order: Order) -> list[SyncJob]:
         order.sync_state = Order.SyncState.PENDING if any(job.status == SyncJob.Status.PENDING for job in jobs) else Order.SyncState.ERROR
         order.save(update_fields=['fulfillment_status', 'sync_state', 'updated_at'])
     return jobs
+
+
+def process_fulfillment_job(job: SyncJob) -> SyncJob:
+    job.status = SyncJob.Status.RUNNING
+    job.started_at = timezone.now()
+    job.save(update_fields=['status', 'started_at'])
+
+    try:
+        channel_account = ChannelAccount.objects.filter(provider=job.provider, is_active=True, sync_enabled=True).first()
+        if not channel_account:
+            raise ValueError('No active channel account is configured for this provider.')
+        order = Order.objects.get(number=job.target_id)
+        connector = get_connector(channel_account)
+        result = connector.submit_order(order, job.payload.get('items', []))
+    except Exception as exc:
+        job.status = SyncJob.Status.FAILED
+        job.log = str(exc)
+        job.finished_at = timezone.now()
+        job.save(update_fields=['status', 'log', 'finished_at'])
+        Order.objects.filter(number=job.target_id).update(sync_state=Order.SyncState.ERROR, updated_at=timezone.now())
+        return job
+
+    job.status = SyncJob.Status.SUCCEEDED
+    job.log = str(result)
+    job.finished_at = timezone.now()
+    job.save(update_fields=['status', 'log', 'finished_at'])
+    Order.objects.filter(number=job.target_id).update(sync_state=Order.SyncState.SYNCED, fulfillment_status=Order.FulfillmentStatus.IN_PROGRESS, updated_at=timezone.now())
+    return job
+
+
+def process_pending_fulfillment_jobs(limit: int = 20, provider: str | None = None) -> list[SyncJob]:
+    jobs = SyncJob.objects.filter(status=SyncJob.Status.PENDING, action='submit_order').order_by('created_at')
+    if provider:
+        jobs = jobs.filter(provider=provider)
+    return [process_fulfillment_job(job) for job in jobs[:limit]]
