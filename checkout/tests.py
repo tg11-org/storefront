@@ -52,3 +52,18 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, order.number)
+
+    @patch('checkout.views.finalize_order_from_checkout_session')
+    def test_success_page_refreshes_order_after_finalize_failure(self, mock_finalize_order):
+        order = Order.objects.create(user=self.user, email=self.user.email, status=Order.Status.PENDING_PAYMENT)
+
+        def mark_paid_then_fail(session_id, **kwargs):
+            Order.objects.filter(pk=order.pk).update(status=Order.Status.PAID)
+            raise RuntimeError('later processing failed')
+
+        mock_finalize_order.side_effect = mark_paid_then_fail
+
+        response = self.client.get(reverse('checkout:success'), {'order': order.number, 'session_id': 'cs_test_123'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Paid')

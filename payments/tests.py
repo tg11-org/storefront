@@ -169,3 +169,28 @@ class StripeCheckoutFinalizationTests(TestCase):
 
         self.assertEqual(finalized_order.status, Order.Status.PAID)
         self.assertEqual(finalized_order.stripe_payment_intent_id, 'pi_test_789')
+
+    @override_settings(STRIPE_SECRET_KEY='sk_test_realish_value')
+    @patch('payments.services.get_stripe_client')
+    def test_finalize_can_use_explicit_order_number_without_session_metadata(self, mock_get_stripe_client):
+        order = Order.objects.create(
+            email='buyer@example.com',
+            status=Order.Status.PENDING_PAYMENT,
+            source=Order.Source.INTERNAL,
+            grand_total='18.00',
+        )
+        session = SimpleNamespace(
+            id='cs_test_no_metadata',
+            metadata=None,
+            client_reference_id='',
+            payment_status='paid',
+            payment_intent='pi_test_no_metadata',
+        )
+        mock_client = Mock()
+        mock_client.checkout.Session.retrieve.return_value = session
+        mock_get_stripe_client.return_value = mock_client
+
+        finalized_order = finalize_order_from_checkout_session(session.id, order_number=order.number)
+
+        self.assertEqual(finalized_order.status, Order.Status.PAID)
+        self.assertEqual(finalized_order.stripe_payment_intent_id, 'pi_test_no_metadata')

@@ -1,4 +1,5 @@
 import stripe
+import logging
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -13,6 +14,8 @@ from orders.models import Order, OrderItem
 from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
 
 from .forms import CheckoutForm
+
+logger = logging.getLogger(__name__)
 
 
 class CheckoutView(LoginRequiredMixin, FormView):
@@ -167,11 +170,18 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
         session_id = self.request.GET.get('session_id')
         if session_id and session_id != '{CHECKOUT_SESSION_ID}':
             try:
-                order = finalize_order_from_checkout_session(session_id) or order
+                order = finalize_order_from_checkout_session(session_id, order_number=self.request.GET.get('order')) or order
             except stripe.error.StripeError as exc:
                 messages.error(self.request, f'Unable to verify the Stripe checkout session: {exc}')
+                order = self._get_order()
             except Exception:
+                logger.exception(
+                    'Checkout success finalization failed for order=%s session_id=%s',
+                    self.request.GET.get('order'),
+                    session_id,
+                )
                 messages.error(self.request, 'Stripe confirmed the redirect, but TG11 Shop could not finish local order processing yet. The webhook can still complete the order shortly.')
+                order = self._get_order()
         context['order'] = order
         return context
 

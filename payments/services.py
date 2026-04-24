@@ -200,12 +200,13 @@ def send_internal_fulfillment_email(order: Order) -> None:
     )
 
 
-def finalize_order_from_checkout_session(session_id: str):
+def finalize_order_from_checkout_session(session_id: str, order_number: str | None = None):
     if not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         return None
     client = get_stripe_client()
     session = client.checkout.Session.retrieve(session_id)
-    order_number = session.metadata.get('order_number') or session.client_reference_id
+    metadata = getattr(session, 'metadata', None) or {}
+    order_number = order_number or metadata.get('order_number') or getattr(session, 'client_reference_id', '')
     if not order_number:
         return None
     order = Order.objects.prefetch_related('items').filter(number=order_number).first()
