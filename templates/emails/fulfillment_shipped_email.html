@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; }
+        .header { border-bottom: 2px solid #0f766e; padding-bottom: 20px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #0f766e; }
+        .status-badge { display: inline-block; background-color: #c7d2fe; color: #3730a3; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+        .order-section { margin: 20px 0; }
+        .order-section h2 { font-size: 16px; color: #333; margin-bottom: 10px; }
+        .tracking-box { background-color: #e0f2fe; border: 2px solid #0284c7; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .tracking-field { margin: 10px 0; }
+        .tracking-label { font-weight: bold; color: #0284c7; }
+        .tracking-value { font-size: 18px; font-weight: bold; font-family: monospace; }
+        .order-details { background-color: #f9f9f9; padding: 15px; border-radius: 4px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-row:last-child { border-bottom: none; }
+        .button { display: inline-block; background-color: #0284c7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        .footer { border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>{{ site_name }}</h1>
+            <p>Order Update: <span class="status-badge">{{ status }}</span></p>
+        </div>
+
+        <p>Hi {{ customer_name }},</p>
+        
+        <p>Great news! Your order <strong>{{ order_number }}</strong> has shipped! 📦</p>
+        
+        <p>Your package is on its way to you. Use the tracking number below to monitor your shipment in real-time.</p>
+
+        <div class="tracking-box">
+            {% if tracking_number %}
+            <div class="tracking-field">
+                <span class="tracking-label">Tracking Number:</span>
+                <div class="tracking-value">{{ tracking_number }}</div>
+            </div>
+            {% endif %}
+            
+            {% if carrier %}
+            <div class="tracking-field">
+                <span class="tracking-label">Carrier:</span>
+                <div>{{ carrier }}</div>
+            </div>
+            {% endif %}
+            
+            {% if estimated_delivery %}
+            <div class="tracking-field">
+                <span class="tracking-label">Estimated Delivery:</span>
+                <div>{{ estimated_delivery|date:"F d, Y" }}</div>
+            </div>
+            {% endif %}
+            
+            {% if tracking_url %}
+            <a href="{{ tracking_url }}" class="button">Track Your Package</a>
+            {% endif %}
+        </div>
+
+        {% if notes %}
+        <div class="order-section">
+            <h2>Shipping Notes</h2>
+            <p>{{ notes }}</p>
+        </div>
+        {% endif %}
+
+        <div class="order-section">
+            <h2>Order Summary</h2>
+            <div class="order-details">
+                <div class="detail-row">
+                    <strong>Order Number:</strong>
+                    <span>{{ order_number }}</span>
+                </div>
+                <div class="detail-row">
+                    <strong>Items:</strong>
+                    <span>{{ items.count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ order_url }}" class="button">View Order Details</a>
+
+        <div class="footer">
+            <p>Thank you for shopping with {{ site_name }}!</p>
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+        </div>
+    </div>
+</body>
+</html>

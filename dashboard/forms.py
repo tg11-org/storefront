@@ -8,6 +8,7 @@ from django.utils.text import slugify
 
 from catalog.models import Product, ProductVariant, StorePage
 from connectors.models import ChannelAccount, ExternalListing
+from orders.models import FulfillmentUpdate, Order
 
 
 class ProductCreateForm(forms.ModelForm):
@@ -115,3 +116,99 @@ class ExternalListingCreateForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class FulfillmentUpdateForm(forms.ModelForm):
+    """Form for creating fulfillment status updates."""
+    
+    class Meta:
+        model = FulfillmentUpdate
+        fields = ['status', 'tracking_number', 'carrier', 'tracking_url', 'estimated_delivery', 'notes']
+        widgets = {
+            'status': forms.Select(attrs={
+                'class': 'form-select',
+            }),
+            'tracking_number': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g., 1Z999AA10123456784',
+            }),
+            'carrier': forms.Select(attrs={
+                'class': 'form-select',
+            }),
+            'tracking_url': forms.URLInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'https://...',
+            }),
+            'estimated_delivery': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-input',
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-textarea',
+                'rows': 3,
+                'placeholder': 'Additional details for the customer (e.g., "Package arriving Tuesday between 9am-5pm")',
+            }),
+        }
+
+
+class OrderFilterForm(forms.Form):
+    """Form for filtering orders on the management page."""
+    
+    STATUS_CHOICES = [('', 'All statuses')] + list(Order.Status.choices)
+    FULFILLMENT_STATUS_CHOICES = [('', 'All fulfillment statuses')] + list(Order.FulfillmentStatus.choices)
+    SOURCE_CHOICES = [('', 'All sources')] + list(Order.Source.choices)
+    
+    status = forms.ChoiceField(choices=STATUS_CHOICES, required=False, widget=forms.Select(attrs={
+        'class': 'form-select',
+    }))
+    fulfillment_status = forms.ChoiceField(choices=FULFILLMENT_STATUS_CHOICES, required=False, widget=forms.Select(attrs={
+        'class': 'form-select',
+    }))
+    source = forms.ChoiceField(choices=SOURCE_CHOICES, required=False, widget=forms.Select(attrs={
+        'class': 'form-select',
+    }))
+    search = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'class': 'form-input',
+        'placeholder': 'Search by order number or email...',
+    }))
+
+
+class BulkOrderActionForm(forms.Form):
+    """Form for bulk actions on multiple orders."""
+    
+    ACTION_CHOICES = [
+        ('', 'Select action'),
+        ('mark_queued', 'Mark as Queued'),
+        ('mark_in_progress', 'Mark as In Progress'),
+        ('mark_shipped', 'Mark as Shipped'),
+        ('mark_delivered', 'Mark as Delivered'),
+    ]
+    
+    action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.Select(attrs={
+        'class': 'form-select',
+    }))
+    order_ids = forms.CharField(widget=forms.HiddenInput())
+    notes = forms.CharField(required=False, widget=forms.Textarea(attrs={
+        'class': 'form-textarea',
+        'rows': 2,
+        'placeholder': 'Optional notes for affected customers',
+    }))
+
+
+class OrderRefundForm(forms.Form):
+    """Form for issuing refunds."""
+    
+    reason = forms.CharField(
+        label='Refund reason',
+        widget=forms.Textarea(attrs={
+            'class': 'form-textarea',
+            'rows': 3,
+            'placeholder': 'Explain why this order is being refunded',
+        })
+    )
+    confirm = forms.BooleanField(
+        label='I confirm this refund should be processed',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-checkbox',
+        })
+    )

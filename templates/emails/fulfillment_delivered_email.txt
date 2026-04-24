@@ -1,0 +1,19 @@
+Hi {{ customer_name }},
+
+Your order {{ order_number }} has been delivered! ✓
+
+We hope you enjoy your purchase! If you have any questions or concerns about your order, please don't hesitate to reach out.
+
+{% if notes %}
+Delivery Notes:
+{{ notes }}
+{% endif %}
+
+Order Details:
+- Order Number: {{ order_number }}
+- Delivered to: {{ shipping_address.street }}, {{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.zip }}
+
+Thank you for shopping with {{ site_name }}!
+
+Best regards,
+{{ site_name }} Team

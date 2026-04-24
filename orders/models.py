@@ -92,3 +92,54 @@ class OrderItem(models.Model):
     @property
     def line_total(self) -> Decimal:
         return (self.unit_price * self.quantity).quantize(Decimal('0.01'))
+
+
+class FulfillmentUpdate(models.Model):
+    """Tracks fulfillment status changes and shipping details."""
+    
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='fulfillment_updates')
+    status = models.CharField(
+        max_length=20,
+        choices=Order.FulfillmentStatus.choices,
+    )
+    tracking_number = models.CharField(max_length=255, blank=True, help_text='Carrier tracking number (e.g., UPS, FedEx, USPS)')
+    carrier = models.CharField(
+        max_length=50,
+        blank=True,
+        choices=[
+            ('ups', 'UPS'),
+            ('fedex', 'FedEx'),
+            ('usps', 'USPS'),
+            ('dhl', 'DHL'),
+            ('other', 'Other'),
+        ]
+    )
+    tracking_url = models.URLField(blank=True, help_text='Direct link to tracking information')
+    estimated_delivery = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, help_text='Additional notes for the customer')
+    email_sent = models.BooleanField(default=False, help_text='Whether notification email has been sent')
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='fulfillment_updates_created')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Fulfillment updates'
+
+    def __str__(self) -> str:
+        return f'{self.order.number} - {self.get_status_display()} ({self.created_at.date()})'
+
+    def get_tracking_url_display(self) -> str:
+        """Generate tracking URL if not provided but we have tracking number and carrier."""
+        if self.tracking_url:
+            return self.tracking_url
+        if not self.tracking_number or not self.carrier:
+            return ''
+        
+        carriers = {
+            'ups': f'https://tracking.ups.com/track?tracknum={self.tracking_number}',
+            'fedex': f'https://tracking.fedex.com/en/track/{self.tracking_number}',
+            'usps': f'https://tools.usps.com/go/TrackConfirmAction?tLabels={self.tracking_number}',
+            'dhl': f'https://www.dhl.com/en/en/express/tracking.html?AWB={self.tracking_number}',
+        }
+        return carriers.get(self.carrier, '')
+

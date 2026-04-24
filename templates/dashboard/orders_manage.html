@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+{% block title %}Manage Orders | TG11 Shop{% endblock %}
+
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Order Fulfillment</p>
+    <h1>Manage Orders</h1>
+    <p class="lead">Update fulfillment status, process refunds, and track shipments.</p>
+  </div>
+</section>
+
+<div class="metric-grid">
+  <article class="metric-card"><span>Total orders</span><strong>{{ stats.total_orders }}</strong></article>
+  <article class="metric-card"><span>Awaiting fulfillment</span><strong>{{ stats.paid_unfulfilled }}</strong></article>
+  <article class="metric-card"><span>In transit</span><strong>{{ stats.in_transit }}</strong></article>
+  <article class="metric-card"><span>Delivered</span><strong>{{ stats.delivered }}</strong></article>
+</div>
+
+<section class="card card-form">
+  <h2>Filter Orders</h2>
+  <form method="get" class="filter-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_search">Search</label>
+        {{ filter_form.search }}
+      </div>
+      <div class="form-group">
+        <label for="id_status">Status</label>
+        {{ filter_form.status }}
+      </div>
+      <div class="form-group">
+        <label for="id_fulfillment_status">Fulfillment Status</label>
+        {{ filter_form.fulfillment_status }}
+      </div>
+      <div class="form-group">
+        <label for="id_source">Source</label>
+        {{ filter_form.source }}
+      </div>
+    </div>
+    <button type="submit" class="button primary">Filter</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Orders</h2>
+  
+  {% if orders %}
+    <div class="orders-table-wrapper">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all" class="select-all-checkbox"></th>
+            <th>Order #</th>
+            <th>Customer</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Fulfillment</th>
+            <th>Source</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td><input type="checkbox" class="order-checkbox" value="{{ order.id }}" data-order-number="{{ order.number }}"></td>
+              <td><strong>{{ order.number }}</strong></td>
+              <td>{{ order.email }}</td>
+              <td>${{ order.grand_total }}</td>
+              <td>
+                <span class="badge badge-{{ order.get_status_display|lower }}">
+                  {{ order.get_status_display }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge-{{ order.get_fulfillment_status_display|lower }}">
+                  {{ order.get_fulfillment_status_display }}
+                </span>
+              </td>
+              <td>{{ order.get_source_display }}</td>
+              <td>{{ order.placed_at|date:"M d, Y" }}</td>
+              <td>
+                <a href="{% url 'dashboard:order_fulfill' order.number %}" class="button small">Manage</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <section class="card card-form">
+      <h3>Bulk Actions</h3>
+      <form method="post" action="{% url 'dashboard:orders_bulk_action' %}" class="bulk-action-form">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_action">Action</label>
+            <select name="action" id="id_action" class="form-select">
+              <option value="">Select action</option>
+              <option value="mark_queued">Mark as Queued</option>
+              <option value="mark_in_progress">Mark as In Progress</option>
+              <option value="mark_shipped">Mark as Shipped</option>
+              <option value="mark_delivered">Mark as Delivered</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="id_notes">Notes (optional)</label>
+            <input type="text" name="notes" id="id_notes" class="form-input" placeholder="e.g., 'Shipped via FedEx'">
+          </div>
+        </div>
+        <input type="hidden" name="order_ids" id="order_ids" value="">
+        <button type="submit" class="button primary" id="bulk-action-btn" disabled>Apply to Selected</button>
+      </form>
+    </section>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('select-all');
+        const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+        const orderIdsInput = document.getElementById('order_ids');
+        const bulkActionBtn = document.getElementById('bulk-action-btn');
+
+        function updateBulkActionState() {
+          const checkedCount = document.querySelectorAll('.order-checkbox:checked').length;
+          bulkActionBtn.disabled = checkedCount === 0;
+          
+          const selectedIds = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(cb => cb.value)
+            .join(',');
+          orderIdsInput.value = selectedIds;
+        }
+
+        selectAllCheckbox.addEventListener('change', function() {
+          orderCheckboxes.forEach(cb => cb.checked = this.checked);
+          updateBulkActionState();
+        });
+
+        orderCheckboxes.forEach(cb => {
+          cb.addEventListener('change', updateBulkActionState);
+        });
+
+        updateBulkActionState();
+      });
+    </script>
+  {% else %}
+    <p>No orders found matching your criteria.</p>
+  {% endif %}
+</section>
+
+<style>
+  .filter-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .form-select {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .form-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .orders-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 2rem;
+  }
+
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .orders-table th,
+  .orders-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #eee);
+  }
+
+  .orders-table th {
+    background-color: var(--bg-secondary, #f5f5f5);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .orders-table tbody tr:hover {
+    background-color: var(--bg-hover, #f9f9f9);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge-paid {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+
+  .badge-queued {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .badge-in-progress {
+    background-color: #bfdbfe;
+    color: #1e40af;
+  }
+
+  .badge-shipped {
+    background-color: #c7d2fe;
+    color: #3730a3;
+  }
+
+  .badge-delivered {
+    background-color: #86efac;
+    color: #15803d;
+  }
+
+  .bulk-action-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .button.small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+</style>
+{% endblock %}

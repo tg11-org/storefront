@@ -1,0 +1,20 @@
+Hi {{ customer_name }},
+
+Your order {{ order_number }} has been queued for fulfillment!
+
+We've received your payment and are preparing your items for shipment. You'll receive another email as soon as your order ships with tracking information.
+
+Order Details:
+- Order Number: {{ order_number }}
+- Total: ${{ order.grand_total }}
+- Items: {{ order.items.count }}
+
+{% if notes %}
+Additional Information:
+{{ notes }}
+{% endif %}
+
+Thank you for shopping with {{ site_name }}!
+
+Best regards,
+{{ site_name }} Team

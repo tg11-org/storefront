@@ -1,0 +1,516 @@
+{% extends 'base.html' %}
+{% block title %}{{ order.number }} | Manage Order | TG11 Shop{% endblock %}
+
+{% block content %}
+<section class="section-header">
+  <div>
+    <p class="eyebrow">Order Management</p>
+    <h1>{{ order.number }}</h1>
+    <p class="lead">{{ order.email }} · Placed {{ order.placed_at|date:"M d, Y" }}</p>
+  </div>
+  <a href="{% url 'dashboard:orders_manage' %}" class="button">Back to Orders</a>
+</section>
+
+<div class="order-detail-grid">
+  <!-- Order Summary -->
+  <section class="card">
+    <h2>Order Summary</h2>
+    <div class="summary-row">
+      <span>Status:</span>
+      <strong class="status-badge">{{ order.get_status_display }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Fulfillment:</span>
+      <strong class="fulfillment-badge">{{ order.get_fulfillment_status_display }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Source:</span>
+      <span>{{ order.get_source_display }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Total:</span>
+      <strong style="font-size: 1.25rem;">${{ order.grand_total }}</strong>
+    </div>
+    
+    <div class="divider"></div>
+
+    <div class="summary-breakdown">
+      <div class="breakdown-row">
+        <span>Subtotal:</span>
+        <span>${{ order.subtotal }}</span>
+      </div>
+      <div class="breakdown-row">
+        <span>Tax:</span>
+        <span>${{ order.tax_total }}</span>
+      </div>
+      <div class="breakdown-row">
+        <span>Shipping:</span>
+        <span>${{ order.shipping_total }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Order Items -->
+  <section class="card">
+    <h2>Items</h2>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>SKU</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+          <tr>
+            <td>
+              <strong>{{ item.title }}</strong>
+              {% if item.custom_request %}<p class="text-muted">{{ item.custom_request }}</p>{% endif %}
+            </td>
+            <td>{{ item.sku }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ item.unit_price }}</td>
+            <td>${{ item.line_total }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Shipping Address -->
+  <section class="card">
+    <h2>Shipping Address</h2>
+    {% if order.shipping_address %}
+      <address class="address-block">
+        {{ order.shipping_address.name }}<br>
+        {{ order.shipping_address.street }}<br>
+        {% if order.shipping_address.apt %}{{ order.shipping_address.apt }}<br>{% endif %}
+        {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.zip }}<br>
+        {{ order.shipping_address.country }}
+      </address>
+    {% else %}
+      <p class="text-muted">No shipping address provided</p>
+    {% endif %}
+  </section>
+
+  <!-- Fulfillment Status Updates -->
+  <section class="card">
+    <h2>Fulfillment History</h2>
+    {% if fulfillment_updates %}
+      <div class="fulfillment-timeline">
+        {% for update in fulfillment_updates %}
+          <div class="timeline-item">
+            <div class="timeline-badge">
+              <span class="status-dot" data-status="{{ update.status }}"></span>
+            </div>
+            <div class="timeline-content">
+              <h3>{{ update.get_status_display }}</h3>
+              <p class="text-muted">{{ update.created_at|date:"M d, Y H:i" }} by {{ update.created_by.get_full_name }}</p>
+              
+              {% if update.tracking_number %}
+                <div class="tracking-info">
+                  <strong>Tracking:</strong> {{ update.tracking_number }}
+                  {% if update.carrier %}<span class="carrier-badge">{{ update.get_carrier_display }}</span>{% endif %}
+                  {% if update.get_tracking_url_display %}<a href="{{ update.get_tracking_url_display }}" target="_blank" class="button small">Track</a>{% endif %}
+                </div>
+              {% endif %}
+              
+              {% if update.estimated_delivery %}
+                <div class="delivery-estimate">
+                  <strong>Estimated delivery:</strong> {{ update.estimated_delivery|date:"M d, Y" }}
+                </div>
+              {% endif %}
+              
+              {% if update.notes %}
+                <p class="notes">{{ update.notes }}</p>
+              {% endif %}
+              
+              {% if update.email_sent %}
+                <p class="text-success"><small>✓ Customer notified</small></p>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">No fulfillment updates yet</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Fulfillment Actions -->
+<div class="action-grid">
+  <!-- Update Fulfillment Status -->
+  <section class="card card-form">
+    <h2>Update Fulfillment Status</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_fulfill-status">New Status</label>
+        {{ fulfillment_form.status }}
+      </div>
+      
+      <div class="form-group">
+        <label for="id_fulfill-tracking_number">Tracking Number</label>
+        {{ fulfillment_form.tracking_number }}
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="id_fulfill-carrier">Carrier</label>
+          {{ fulfillment_form.carrier }}
+        </div>
+        <div class="form-group">
+          <label for="id_fulfill-estimated_delivery">Estimated Delivery</label>
+          {{ fulfillment_form.estimated_delivery }}
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="id_fulfill-tracking_url">Tracking URL (optional)</label>
+        {{ fulfillment_form.tracking_url }}
+        <small>Auto-generated if tracking number and carrier are provided</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="id_fulfill-notes">Customer Notes</label>
+        {{ fulfillment_form.notes }}
+      </div>
+      
+      <button type="submit" name="fulfill-status" class="button primary" style="width: 100%;">Send Update & Notify Customer</button>
+    </form>
+  </section>
+
+  <!-- Refund Section -->
+  <section class="card card-form card-danger">
+    <h2>Process Refund</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_refund-reason">Reason for Refund</label>
+        <textarea name="refund-reason" id="id_refund-reason" class="form-textarea" rows="3" placeholder="Explain why this order is being refunded"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="refund-confirm" id="id_refund-confirm" class="form-checkbox" required>
+          I confirm this refund should be processed for ${{ order.grand_total }}
+        </label>
+      </div>
+      
+      <button type="submit" name="refund-action" class="button danger" style="width: 100%;">Process Refund</button>
+    </form>
+  </section>
+
+  <!-- Return Request Section -->
+  <section class="card card-form card-warning">
+    <h2>Handle Return Request</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_return-reason">Return Reason</label>
+        <textarea name="return-reason" id="id_return-reason" class="form-textarea" rows="3" placeholder="Note the customer's reason for return"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="return-confirm" id="id_return-confirm" class="form-checkbox" required>
+          I confirm this return should be initiated
+        </label>
+      </div>
+      
+      <button type="submit" name="return-action" class="button secondary" style="width: 100%;">Initiate Return</button>
+    </form>
+  </section>
+</div>
+
+<style>
+  .order-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .order-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color, #eee);
+  }
+
+  .summary-row:last-child {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #dcfce7;
+    color: #166534;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .fulfillment-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #fef3c7;
+    color: #92400e;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .divider {
+    height: 1px;
+    background-color: var(--border-color, #eee);
+    margin: 1rem 0;
+  }
+
+  .summary-breakdown {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #eee);
+  }
+
+  .items-table th {
+    background-color: var(--bg-secondary, #f5f5f5);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .text-muted {
+    color: var(--text-muted, #666);
+    font-size: 0.875rem;
+  }
+
+  .address-block {
+    font-style: normal;
+    line-height: 1.6;
+    color: var(--text-primary, #333);
+  }
+
+  .fulfillment-timeline {
+    position: relative;
+    padding: 1rem 0;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-left: 2px solid var(--border-color, #eee);
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+  }
+
+  .timeline-badge {
+    position: relative;
+    left: -1.5rem;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: #999;
+  }
+
+  .status-dot[data-status="queued"] {
+    background-color: #f59e0b;
+  }
+
+  .status-dot[data-status="in_progress"] {
+    background-color: #3b82f6;
+  }
+
+  .status-dot[data-status="shipped"] {
+    background-color: #8b5cf6;
+  }
+
+  .status-dot[data-status="delivered"] {
+    background-color: #10b981;
+  }
+
+  .timeline-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+  }
+
+  .tracking-info {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--bg-secondary, #f5f5f5);
+    border-radius: 4px;
+  }
+
+  .carrier-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    background-color: var(--accent, #0f766e);
+    color: white;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .delivery-estimate {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .notes {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f0f9ff;
+    border-left: 2px solid #0ea5e9;
+    border-radius: 2px;
+    font-size: 0.875rem;
+  }
+
+  .text-success {
+    color: #10b981;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 1200px) {
+    .action-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .card-danger {
+    border: 2px solid #ef4444;
+  }
+
+  .card-danger h2 {
+    color: #dc2626;
+  }
+
+  .card-warning {
+    border: 2px solid #f59e0b;
+  }
+
+  .card-warning h2 {
+    color: #d97706;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .form-group label {
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .form-select,
+  .form-textarea,
+  .form-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+
+  .form-textarea {
+    resize: vertical;
+  }
+
+  .form-checkbox {
+    margin-right: 0.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .button.primary {
+    background-color: var(--accent, #0f766e);
+    color: white;
+  }
+
+  .button.primary:hover {
+    opacity: 0.9;
+  }
+
+  .button.secondary {
+    background-color: #6b7280;
+    color: white;
+  }
+
+  .button.danger {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .button.small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-muted, #666);
+    font-size: 0.8rem;
+  }
+</style>
+{% endblock %}

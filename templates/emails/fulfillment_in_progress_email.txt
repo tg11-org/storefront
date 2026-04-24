@@ -1,0 +1,19 @@
+Hi {{ customer_name }},
+
+Your order {{ order_number }} is being prepared for shipment!
+
+Our team is carefully packing your items and preparing them to ship out soon. You'll receive tracking information as soon as your order leaves our warehouse.
+
+Order Details:
+- Order Number: {{ order_number }}
+- Total: ${{ order.grand_total }}
+
+{% if notes %}
+Updates:
+{{ notes }}
+{% endif %}
+
+Thank you for your patience!
+
+Best regards,
+{{ site_name }} Team
