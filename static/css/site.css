@@ -1,5 +1,6 @@
 :root {
   --bg: #f4efe5;
+  --bg-top: #fbf7f0;
   --bg-strong: #efe5d4;
   --surface: #fffdf8;
   --surface-alt: #f8f1e6;
@@ -13,6 +14,22 @@
   --shadow: 0 20px 50px rgba(31, 26, 20, 0.08);
 }
 
+:root[data-theme='dark'] {
+  --bg: #14181f;
+  --bg-top: #1b2430;
+  --bg-strong: #222b36;
+  --surface: #1e2632;
+  --surface-alt: #273140;
+  --ink: #e8edf4;
+  --muted: #a9b5c6;
+  --line: #364252;
+  --accent: #2da397;
+  --accent-strong: #6ac2bb;
+  --warm: #d98d62;
+  --danger: #f07b7b;
+  --shadow: 0 22px 56px rgba(2, 5, 10, 0.45);
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -20,7 +37,7 @@ body {
   color: var(--ink);
   background:
     radial-gradient(circle at top left, rgba(201, 107, 59, 0.16), transparent 30%),
-    linear-gradient(180deg, #fbf7f0 0%, var(--bg) 100%);
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 100%);
 }
 
 a { color: var(--accent-strong); text-decoration: none; }
@@ -30,8 +47,10 @@ a:hover { text-decoration: underline; }
 .site-header { padding: 1.25rem 0 1rem; }
 .brand-row, .section-header, .summary-line, .card-meta, .site-footer, .cta-row, .hero-panel, .detail-grid, .dashboard-grid, .checkout-grid, .metric-grid { display: grid; gap: 1rem; }
 .brand-row { grid-template-columns: 1fr auto; align-items: center; }
+.nav-actions { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
 .brand-mark { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.03em; }
 .site-nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+.theme-toggle { min-width: 8.5rem; }
 .hero-ribbon { margin-top: 1rem; padding: 0.85rem 1rem; background: var(--bg-strong); border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
 .site-main { padding: 1rem 0 4rem; }
 .site-footer { padding: 2rem 0 3rem; color: var(--muted); }
@@ -63,7 +82,7 @@ a:hover { text-decoration: underline; }
 .compact-grid p { margin: 0; }
 input, select, textarea {
   width: 100%; padding: 0.75rem 0.9rem; border-radius: 14px; border: 1px solid var(--line);
-  background: white; font: inherit; margin-top: 0.35rem;
+  background: var(--surface); color: var(--ink); font: inherit; margin-top: 0.35rem;
 }
 .checkbox-row { display: flex; gap: 0.6rem; align-items: center; margin-top: 0.75rem; }
 .checkbox-row input { width: auto; margin: 0; }
@@ -77,5 +96,6 @@ input, select, textarea {
 
 @media (max-width: 720px) {
   .brand-row { grid-template-columns: 1fr; }
+  .nav-actions { justify-content: flex-start; }
   .site-nav { justify-content: flex-start; }
 }

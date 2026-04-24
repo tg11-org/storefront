@@ -5,6 +5,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}TG11 Shop{% endblock %}</title>
+  <script>
+    (function () {
+      var stored = null;
+      try {
+        stored = localStorage.getItem('theme');
+      } catch (e) {
+        stored = null;
+      }
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
 </head>
 <body>
@@ -12,18 +25,21 @@
     <header class="site-header">
       <div class="brand-row">
         <a class="brand-mark" href="{% url 'catalog:home' %}">TG11 Shop</a>
-        <nav class="site-nav">
-          <a href="{% url 'catalog:product_list' %}">Products</a>
-          <a href="{% url 'cart:detail' %}">Cart{% if site_cart %} ({{ site_cart.item_count }}){% endif %}</a>
-          {% if request.user.is_authenticated %}
-            <a href="{% url 'accounts:dashboard' %}">Account</a>
-            <a href="{% url 'orders:list' %}">Orders</a>
-            <a href="{% url 'account_logout' %}">Log out</a>
-          {% else %}
-            <a href="{% url 'account_login' %}">Log in</a>
-            <a href="{% url 'account_signup' %}">Sign up</a>
-          {% endif %}
-        </nav>
+        <div class="nav-actions">
+          <nav class="site-nav">
+            <a href="{% url 'catalog:product_list' %}">Products</a>
+            <a href="{% url 'cart:detail' %}">Cart{% if site_cart %} ({{ site_cart.item_count }}){% endif %}</a>
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'accounts:dashboard' %}">Account</a>
+              <a href="{% url 'orders:list' %}">Orders</a>
+              <a href="{% url 'account_logout' %}">Log out</a>
+            {% else %}
+              <a href="{% url 'account_login' %}">Log in</a>
+              <a href="{% url 'account_signup' %}">Sign up</a>
+            {% endif %}
+          </nav>
+          <button id="theme-toggle" type="button" class="button ghost theme-toggle" aria-label="Toggle color theme">Theme: dark</button>
+        </div>
       </div>
       <div class="hero-ribbon">Production-ready Django storefront for <strong>shop.tg11.org</strong></div>
     </header>
@@ -44,5 +60,35 @@
       <p>Stripe test mode ready. Apache reverse proxies traffic to the Django app on the 127.6.x.x loopback range.</p>
     </footer>
   </div>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var toggle = document.getElementById('theme-toggle');
+      if (!toggle) {
+        return;
+      }
+
+      function getTheme() {
+        return root.getAttribute('data-theme') || 'light';
+      }
+
+      function setTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        toggle.textContent = 'Theme: ' + (theme === 'dark' ? 'light' : 'dark');
+        toggle.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+        try {
+          localStorage.setItem('theme', theme);
+        } catch (e) {
+          // Ignore storage errors in restricted environments.
+        }
+      }
+
+      setTheme(getTheme());
+
+      toggle.addEventListener('click', function () {
+        setTheme(getTheme() === 'dark' ? 'light' : 'dark');
+      });
+    })();
+  </script>
 </body>
 </html>
