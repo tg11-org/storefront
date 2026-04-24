@@ -38,7 +38,7 @@
               <a href="{% url 'account_signup' %}">Sign up</a>
             {% endif %}
           </nav>
-          <button id="theme-toggle" type="button" class="button ghost theme-toggle" aria-label="Toggle color theme">Theme: dark</button>
+          <button id="theme-toggle" type="button" class="button ghost theme-toggle" aria-label="Toggle color theme">Theme: light</button>
         </div>
       </div>
       <div class="hero-ribbon">TG11 Shop control deck: products, checkout, and fulfillment in one place.</div>
@@ -74,7 +74,7 @@
 
       function setTheme(theme) {
         root.setAttribute('data-theme', theme);
-        toggle.textContent = 'Theme: ' + (theme === 'dark' ? 'light' : 'dark');
+        toggle.textContent = 'Theme: ' + theme;
         toggle.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
         try {
           localStorage.setItem('theme', theme);
