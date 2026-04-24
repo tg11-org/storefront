@@ -23,6 +23,13 @@ class CheckoutView(LoginRequiredMixin, FormView):
         if not self.cart or not self.cart.items.exists():
             messages.info(request, 'Your cart is empty.')
             return redirect('cart:detail')
+        unavailable_items = [
+            item for item in self.cart.items.select_related('product', 'variant')
+            if item.quantity > item.variant.stock_quantity
+        ]
+        if unavailable_items:
+            messages.error(request, 'One or more cart items exceed available stock. Update your cart before checkout.')
+            return redirect('cart:detail')
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -127,6 +134,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 unit_price=cart_item.variant.price,
                 source=cart_item.product.default_source,
                 external_listing_id=self._external_listing_id(cart_item),
+                custom_request=cart_item.custom_request,
             )
             for cart_item in cart_items
         ])

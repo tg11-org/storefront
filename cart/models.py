@@ -36,11 +36,14 @@ class CartItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='cart_items')
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='cart_items')
     quantity = models.PositiveIntegerField(default=1)
+    custom_request = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('cart', 'variant')
+        constraints = [
+            models.UniqueConstraint(fields=['cart', 'variant', 'custom_request'], name='unique_cart_variant_custom_request'),
+        ]
 
     def __str__(self) -> str:
         return f'{self.quantity} x {self.variant}'

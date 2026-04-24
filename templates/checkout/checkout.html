@@ -46,7 +46,13 @@
   <aside class="summary-card">
     <h2>Order summary</h2>
     {% for item in cart.items.all %}
-      <div class="summary-line"><span>{{ item.product.name }} x {{ item.quantity }}</span><strong>${{ item.line_total }}</strong></div>
+      <div class="summary-line">
+        <span>
+          {{ item.product.name }} x {{ item.quantity }}
+          {% if item.custom_request %}<small>Custom: {{ item.custom_request }}</small>{% endif %}
+        </span>
+        <strong>${{ item.line_total }}</strong>
+      </div>
     {% endfor %}
     <div class="summary-line total"><span>Total</span><strong>${{ cart.subtotal }}</strong></div>
     {% if form.errors %}

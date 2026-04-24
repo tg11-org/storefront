@@ -36,6 +36,7 @@ def _provider_items(order: Order) -> dict[str, list[dict]]:
                 'external_listing_id': item.external_listing_id or getattr(listing, 'external_listing_id', ''),
                 'external_product_id': getattr(listing, 'external_product_id', ''),
                 'external_variant_id': getattr(listing, 'external_variant_id', ''),
+                'custom_request': item.custom_request,
             }
         )
     return dict(items_by_provider)

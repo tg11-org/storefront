@@ -13,8 +13,23 @@ from connectors.models import ChannelAccount, ExternalListing
 class ProductCreateForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ('name', 'slug', 'short_description', 'description', 'product_type', 'default_source', 'is_active', 'is_featured')
-        widgets = {'description': forms.Textarea(attrs={'rows': 5})}
+        fields = (
+            'name',
+            'slug',
+            'short_description',
+            'description',
+            'product_type',
+            'default_source',
+            'allow_custom_requests',
+            'custom_request_label',
+            'custom_request_help_text',
+            'is_active',
+            'is_featured',
+        )
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 5}),
+            'custom_request_help_text': forms.TextInput(attrs={'placeholder': 'Example: color palette, size notes, gift message'}),
+        }
 
     def clean_slug(self):
         slug = self.cleaned_data.get('slug') or slugify(self.cleaned_data.get('name', ''))

@@ -33,7 +33,7 @@ class ExternalFulfillmentQueueTests(TestCase):
             shipping_address={'line1': '123 Market St'},
             grand_total='55.00',
         )
-        OrderItem.objects.create(order=order, product=product, variant=variant, title=product.name, sku=variant.sku, quantity=1, unit_price='55.00', source=Order.Source.POPCUSTOMS)
+        OrderItem.objects.create(order=order, product=product, variant=variant, title=product.name, sku=variant.sku, quantity=1, unit_price='55.00', source=Order.Source.POPCUSTOMS, custom_request='Gift wrap')
 
         jobs = queue_external_fulfillment_for_order(order)
         queue_external_fulfillment_for_order(order)
@@ -43,6 +43,7 @@ class ExternalFulfillmentQueueTests(TestCase):
         job = SyncJob.objects.get()
         self.assertEqual(job.status, SyncJob.Status.PENDING)
         self.assertEqual(job.payload['items'][0]['external_listing_id'], 'pop-listing-1')
+        self.assertEqual(job.payload['items'][0]['custom_request'], 'Gift wrap')
         order.refresh_from_db()
         self.assertEqual(order.fulfillment_status, Order.FulfillmentStatus.QUEUED)
 

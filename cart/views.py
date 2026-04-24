@@ -9,6 +9,18 @@ from catalog.models import Product, ProductVariant
 from .models import Cart, CartItem
 
 
+def _requested_quantity(cart: Cart, variant: ProductVariant, quantity: int, exclude_item: CartItem | None = None) -> int:
+    existing_items = cart.items.filter(variant=variant)
+    if exclude_item:
+        existing_items = existing_items.exclude(pk=exclude_item.pk)
+    existing_quantity = sum(item.quantity for item in existing_items)
+    return existing_quantity + quantity
+
+
+def _has_stock(variant: ProductVariant, quantity: int) -> bool:
+    return quantity <= variant.stock_quantity
+
+
 def get_or_create_cart(request, create: bool = True) -> Cart | None:
     if request.user.is_authenticated:
         cart = Cart.objects.filter(user=request.user, checked_out_at__isnull=True).first()
@@ -36,8 +48,12 @@ def add_to_cart(request, slug):
     variant_id = request.POST.get('variant_id')
     quantity = max(int(request.POST.get('quantity', 1)), 1)
     variant = get_object_or_404(ProductVariant, pk=variant_id, product=product, is_active=True) if variant_id else product.primary_variant
+    custom_request = request.POST.get('custom_request', '').strip() if product.allow_custom_requests else ''
     cart = get_or_create_cart(request)
-    item, created = CartItem.objects.get_or_create(cart=cart, variant=variant, defaults={'product': product, 'quantity': quantity})
+    if not variant or not _has_stock(variant, _requested_quantity(cart, variant, quantity)):
+        messages.error(request, f'Only {variant.stock_quantity if variant else 0} available for {product.name}.')
+        return redirect(product.get_absolute_url())
+    item, created = CartItem.objects.get_or_create(cart=cart, variant=variant, custom_request=custom_request, defaults={'product': product, 'quantity': quantity})
     if not created:
         item.quantity += quantity
         item.save(update_fields=['quantity', 'updated_at'])
@@ -53,6 +69,8 @@ def update_cart_item(request, pk):
     if quantity == 0:
         item.delete()
         messages.info(request, 'Item removed from your cart.')
+    elif not _has_stock(item.variant, _requested_quantity(cart, item.variant, quantity, exclude_item=item)):
+        messages.error(request, f'Only {item.variant.stock_quantity} available for {item.product.name}.')
     else:
         item.quantity = quantity
         item.save(update_fields=['quantity', 'updated_at'])

@@ -73,6 +73,7 @@ class PopCustomsConnector(BaseConnector):
                     'external_listing_id': item.get('external_listing_id', ''),
                     'external_product_id': item.get('external_product_id', ''),
                     'external_variant_id': item.get('external_variant_id', ''),
+                    'custom_request': item.get('custom_request', ''),
                 }
                 for item in items
             ],

@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import stripe
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -86,3 +87,58 @@ class StripeCheckoutFinalizationTests(TestCase):
 
         self.assertEqual(finalized_order.status, Order.Status.PAID)
         self.assertEqual(SyncJob.objects.filter(action='submit_order', provider=ChannelAccount.Provider.POPCUSTOMS).count(), 1)
+
+    @override_settings(
+        STRIPE_SECRET_KEY='sk_test_realish_value',
+        FULFILLMENT_EMAIL_RECIPIENTS=['orders@example.com'],
+        DEFAULT_FROM_EMAIL='TG11 Shop <no-reply@example.com>',
+    )
+    @patch('payments.services.get_stripe_client')
+    def test_paid_internal_checkout_decrements_inventory_and_sends_email_once(self, mock_get_stripe_client):
+        product = Product.objects.create(name='TG11 Candle', slug='tg11-candle', default_source=Product.Source.INTERNAL)
+        variant = ProductVariant.objects.create(product=product, title='Vanilla', sku='CANDLE-001', price='18.00', stock_quantity=4, is_default=True)
+        order = Order.objects.create(
+            email='buyer@example.com',
+            status=Order.Status.PENDING_PAYMENT,
+            source=Order.Source.INTERNAL,
+            grand_total='36.00',
+            shipping_address={
+                'full_name': 'Buyer Person',
+                'line1': '123 Market St',
+                'city': 'New York',
+                'state': 'NY',
+                'postal_code': '10001',
+                'country': 'US',
+            },
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            variant=variant,
+            title=product.name,
+            sku=variant.sku,
+            quantity=2,
+            unit_price='18.00',
+            source=Order.Source.INTERNAL,
+            custom_request='Please include gold flakes.',
+        )
+        session = SimpleNamespace(
+            id='cs_test_456',
+            metadata={'order_number': order.number},
+            client_reference_id=order.number,
+            payment_status='paid',
+            payment_intent='pi_test_456',
+        )
+        mock_client = Mock()
+        mock_client.checkout.Session.retrieve.return_value = session
+        mock_get_stripe_client.return_value = mock_client
+
+        finalize_order_from_checkout_session(session.id)
+        finalize_order_from_checkout_session(session.id)
+
+        variant.refresh_from_db()
+        self.assertEqual(variant.stock_quantity, 2)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('TG11 Candle', mail.outbox[0].body)
+        self.assertIn('Please include gold flakes.', mail.outbox[0].body)
+        self.assertIn('123 Market St', mail.outbox[0].body)

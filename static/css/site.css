@@ -99,6 +99,7 @@ input, select, textarea {
 .compact-header { grid-template-columns: 1fr auto; align-items: center; margin-bottom: 1rem; }
 .field-block { display: grid; gap: 0.25rem; }
 .field-block small, .checkbox-row + small { color: var(--muted); font-size: 0.85rem; }
+.form-help, .summary-line small { display: block; color: var(--muted); font-size: 0.9rem; margin: 0.35rem 0 0; }
 .field-block textarea { min-height: 8rem; resize: vertical; }
 select[multiple] { min-height: 12rem; }
 

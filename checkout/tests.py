@@ -30,7 +30,7 @@ class CheckoutTests(TestCase):
         self.variant = ProductVariant.objects.create(product=self.product, title='Default', sku='TEE-001', price=Decimal('30.00'), stock_quantity=10, is_default=True)
         self.client.login(email='buyer@example.com', password='StrongPass123!')
         cart = Cart.objects.create(user=self.user)
-        cart.items.create(product=self.product, variant=self.variant, quantity=1)
+        cart.items.create(product=self.product, variant=self.variant, quantity=1, custom_request='Make it extra soft')
 
     @patch('checkout.views.create_checkout_session')
     def test_checkout_creates_order_and_redirects_to_stripe(self, mock_create_checkout_session):
@@ -41,3 +41,4 @@ class CheckoutTests(TestCase):
         order = Order.objects.get()
         self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
         self.assertEqual(order.items.get().sku, 'TEE-001')
+        self.assertEqual(order.items.get().custom_request, 'Make it extra soft')

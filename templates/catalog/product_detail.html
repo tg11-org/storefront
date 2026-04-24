@@ -21,6 +21,13 @@
       </select>
       <label for="quantity">Quantity</label>
       <input id="quantity" type="number" name="quantity" min="1" value="1">
+      {% if object.allow_custom_requests %}
+        <label for="custom_request">{{ object.custom_request_label|default:"Custom request" }}</label>
+        <textarea id="custom_request" name="custom_request" rows="4"></textarea>
+        {% if object.custom_request_help_text %}
+          <p class="form-help">{{ object.custom_request_help_text }}</p>
+        {% endif %}
+      {% endif %}
       <button class="button primary" type="submit">Add to cart</button>
     </form>
   </aside>

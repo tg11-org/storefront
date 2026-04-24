@@ -4,10 +4,13 @@ from decimal import Decimal
 
 import stripe
 from django.conf import settings
+from django.core.mail import send_mail
+from django.db.models import F
 from django.utils import timezone
 
 from accounts.models import CustomerProfile
 from cart.models import Cart
+from catalog.models import ProductVariant
 from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
 
@@ -60,7 +63,7 @@ def create_checkout_session(order: Order, success_url: str, cancel_url: str):
                     'currency': settings.STRIPE_CURRENCY,
                     'product_data': {
                         'name': item.title,
-                        'metadata': {'sku': item.sku, 'source': item.source},
+                        'metadata': {'sku': item.sku, 'source': item.source, 'custom_request': item.custom_request[:500]},
                     },
                     'unit_amount': _amount_to_cents(item.unit_price),
                 },
@@ -140,6 +143,60 @@ def sync_saved_payment_methods(user):
     return SavedPaymentMethodRef.objects.filter(user=user)
 
 
+def _format_address(address: dict) -> str:
+    lines = [
+        address.get('full_name', ''),
+        address.get('company_name', ''),
+        address.get('line1', ''),
+        address.get('line2', ''),
+        ' '.join(part for part in [address.get('city', ''), address.get('state', ''), address.get('postal_code', '')] if part),
+        address.get('country', ''),
+        address.get('phone_number', ''),
+    ]
+    return '\n'.join(line for line in lines if line)
+
+
+def _internal_order_items(order: Order):
+    return [
+        item for item in order.items.select_related('variant')
+        if item.source == Order.Source.INTERNAL and item.variant_id
+    ]
+
+
+def decrement_internal_inventory(order: Order) -> None:
+    for item in _internal_order_items(order):
+        ProductVariant.objects.filter(pk=item.variant_id, stock_quantity__gte=item.quantity).update(stock_quantity=F('stock_quantity') - item.quantity)
+
+
+def send_internal_fulfillment_email(order: Order) -> None:
+    if not settings.FULFILLMENT_EMAIL_RECIPIENTS:
+        return
+    items = _internal_order_items(order)
+    if not items:
+        return
+    item_lines = '\n'.join(
+        f'- {item.quantity} x {item.title} ({item.sku or "no sku"}) at ${item.unit_price}'
+        + (f'\n  Custom request: {item.custom_request}' if item.custom_request else '')
+        for item in items
+    )
+    message = (
+        f'Hey, you have an order to fulfill.\n\n'
+        f'Order: {order.number}\n'
+        f'Customer email: {order.email}\n'
+        f'Paid total: ${order.grand_total}\n\n'
+        f'Items:\n{item_lines}\n\n'
+        f'Ship to:\n{_format_address(order.shipping_address)}\n\n'
+        f'Notes:\n{order.notes or "None"}\n'
+    )
+    send_mail(
+        subject=f'TG11 Shop order to fulfill: {order.number}',
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=settings.FULFILLMENT_EMAIL_RECIPIENTS,
+        fail_silently=True,
+    )
+
+
 def finalize_order_from_checkout_session(session_id: str):
     if not is_configured_stripe_value(settings.STRIPE_SECRET_KEY):
         return None
@@ -155,6 +212,7 @@ def finalize_order_from_checkout_session(session_id: str):
     payment_status = getattr(session, 'payment_status', '')
     intent_id = getattr(session, 'payment_intent', '') or ''
     if payment_status == 'paid':
+        was_paid = order.status == Order.Status.PAID
         order.status = Order.Status.PAID
         order.paid_at = timezone.now()
         order.stripe_payment_intent_id = intent_id
@@ -171,10 +229,13 @@ def finalize_order_from_checkout_session(session_id: str):
                 'metadata': {'order_number': order.number},
             },
         )
-        if order.user:
+        if order.user and not was_paid:
             sync_saved_payment_methods(order.user)
-        if order.cart_id:
+        if order.cart_id and not was_paid:
             Cart.objects.filter(pk=order.cart_id).update(checked_out_at=timezone.now())
             order.cart.items.all().delete()
-        queue_external_fulfillment_for_order(order)
+        if not was_paid:
+            decrement_internal_inventory(order)
+            send_internal_fulfillment_email(order)
+            queue_external_fulfillment_for_order(order)
     return order

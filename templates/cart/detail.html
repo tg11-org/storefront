@@ -17,6 +17,9 @@
         <div>
           <h2>{{ item.product.name }}</h2>
           <p>{{ item.variant.title }} ? Fulfilled via {{ item.product.get_default_source_display }}</p>
+          {% if item.custom_request %}
+            <p><strong>Custom request:</strong> {{ item.custom_request }}</p>
+          {% endif %}
           <strong>${{ item.line_total }}</strong>
         </div>
         <div class="cart-actions">

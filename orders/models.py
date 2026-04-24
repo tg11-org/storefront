@@ -84,6 +84,7 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     source = models.CharField(max_length=20, choices=Order.Source.choices, default=Order.Source.INTERNAL)
     external_listing_id = models.CharField(max_length=255, blank=True)
+    custom_request = models.TextField(blank=True)
 
     def __str__(self) -> str:
         return f'{self.title} x {self.quantity}'

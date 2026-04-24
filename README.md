@@ -182,6 +182,7 @@ systemctl reload apache2
 - `STRIPE_ACCOUNT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_API_HEADER`
 - `ETSY_API_KEY`, `ETSY_SHARED_SECRET`
+- `FULFILLMENT_EMAIL_RECIPIENTS`
 
 ## Stripe integration
 
@@ -212,6 +213,14 @@ Suggested events:
 - `ChannelAccount`, `ExternalListing`, `ExternalOrder`, and `SyncJob` keep marketplace concerns isolated from core storefront models.
 
 For Etsy, store the app keystring and shared secret in `.env`. The channel account can use the numeric Etsy shop ID as `account_identifier`, or include it in config JSON as `{"shop_id": "..."}`. OAuth access and refresh tokens are still required before private Etsy shop/order API calls can run.
+
+## Local products
+
+Create local inventory from `/dashboard/manage/products/new/` by setting the fulfillment source to `Internal` and entering the variant stock quantity. Cart and checkout prevent customers from buying more than the available variant stock.
+
+Enable custom requests on products that need customer input, such as resin dice colors, gift notes, or made-to-order details. Products without custom requests enabled keep the normal product page without an extra field.
+
+When Stripe marks an internal order as paid, TG11 Shop decrements the variant stock and sends a fulfillment email to `FULFILLMENT_EMAIL_RECIPIENTS` with the order number, items, customer email, shipping address, and notes. Multiple Stripe confirmations for the same order do not decrement stock or send the email again.
 
 ### Fulfillment jobs
 
