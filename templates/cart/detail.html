@@ -69,10 +69,6 @@
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 2rem;
-    padding: 1.5rem;
-    background-color: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #eee);
-    border-radius: 8px;
   }
 
   .stack-card h2 {
@@ -84,7 +80,7 @@
   }
 
   .text-muted {
-    color: var(--text-muted, #666);
+    color: var(--muted);
     font-size: 0.875rem;
   }
 
@@ -113,40 +109,12 @@
 
   .quantity-input {
     padding: 0.5rem;
-    border: 1px solid var(--border-color, #ddd);
-    border-radius: 4px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
     font-size: 1rem;
   }
 
-  .button {
-    padding: 0.5rem 1rem;
-    background-color: var(--accent, #0f766e);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-
-  .button:hover {
-    opacity: 0.9;
-  }
-
-  .button.ghost {
-    background-color: transparent;
-    color: var(--text-primary, #333);
-    border: 1px solid var(--border-color, #ddd);
-  }
-
-  .summary-card {
-    padding: 1.5rem;
-    background-color: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #eee);
-    border-radius: 8px;
-    text-align: right;
-  }
+  .summary-card { text-align: right; }
 
   .summary-card p {
     margin-bottom: 0.5rem;
@@ -160,20 +128,6 @@
   .empty-state {
     padding: 3rem;
     text-align: center;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-
-  .eyebrow {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--text-muted, #666);
-    margin-bottom: 0.5rem;
   }
 
   @media (max-width: 768px) {
