@@ -46,7 +46,7 @@
                 {% if shipping_address %}
                 <div class="detail-row">
                     <strong>Delivered To:</strong>
-                    <span>{{ shipping_address.street }}, {{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.zip }}</span>
+                    <span>{{ shipping_address.full_name }}{% if shipping_address.full_name %}, {% endif %}{{ shipping_address.line1 }}, {{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.postal_code }}</span>
                 </div>
                 {% endif %}
             </div>

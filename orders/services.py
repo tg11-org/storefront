@@ -24,11 +24,25 @@ def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate) -> bool
     
     order = fulfillment_update.order
     recipient_email = order.email
-    
+
+    # Skip statuses that have no email template
+    statuses_with_templates = {'queued', 'in_progress', 'shipped', 'delivered'}
+    if fulfillment_update.status not in statuses_with_templates:
+        return False
+
+    # Resolve customer name: user full name → shipping address name → email
+    shipping = order.shipping_address or {}
+    customer_name = (
+        (order.user.get_full_name() if order.user else '')
+        or shipping.get('full_name', '')
+        or recipient_email
+        or 'Valued Customer'
+    )
+
     # Prepare email template context
     context = {
         'order_number': order.number,
-        'customer_name': order.user.get_full_name() if order.user else 'Valued Customer',
+        'customer_name': customer_name,
         'status': fulfillment_update.get_status_display(),
         'status_slug': fulfillment_update.status,
         'tracking_number': fulfillment_update.tracking_number or '',
@@ -39,7 +53,7 @@ def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate) -> bool
         'items': order.items.all(),
         'order': order,
         'order_url': get_order_absolute_url(order),
-        'shipping_address': order.shipping_address,
+        'shipping_address': shipping,
         'site_name': 'TG11 Shop',
     }
     
