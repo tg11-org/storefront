@@ -47,7 +47,7 @@
     {% for order in orders %}
       <article class="mini-card">
         <a href="{% url 'orders:detail' order.number %}">{{ order.number }}</a>
-        <p>{{ order.get_status_display }} ? Fulfilled via {{ order.fulfillment_label }}</p>
+        <p>{{ order.get_status_display }}</p>
       </article>
     {% empty %}
       <p>No orders yet.</p>

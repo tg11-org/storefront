@@ -6,7 +6,6 @@
   <h1>Thanks, your order is in motion.</h1>
   {% if order %}
     <p>Order <strong>{{ order.number }}</strong> is currently <strong>{{ order.get_status_display }}</strong>.</p>
-    <p>Fulfillment source: <strong>{{ order.fulfillment_label }}</strong></p>
     <a class="button primary" href="{% url 'orders:detail' order.number %}">View order</a>
   {% else %}
     <p>Stripe redirected back successfully, but we could not resolve the order record from the session yet.</p>

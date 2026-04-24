@@ -6,12 +6,11 @@
     <p class="eyebrow">Catalog</p>
     <h1>Browse products</h1>
   </div>
-  <p>Native, Etsy-linked, and future connector-driven items all live behind one storefront.</p>
+  <p>Explore everything we carry. New items added regularly.</p>
 </section>
 <div class="card-grid">
   {% for product in object_list %}
     <article class="product-card">
-      <p class="pill">Fulfilled via {{ product.fulfillment_label }}</p>
       <h2><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h2>
       <p>{{ product.short_description|default:product.description|truncatechars:120 }}</p>
       <div class="card-meta">

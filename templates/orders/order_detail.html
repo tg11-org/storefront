@@ -4,12 +4,12 @@
 <section class="stack-card">
   <p class="eyebrow">Order detail</p>
   <h1>{{ object.number }}</h1>
-  <p>{{ object.get_status_display }} ? Fulfilled via {{ object.fulfillment_label }}</p>
+  <p>{{ object.get_status_display }}</p>
   <div class="stack-list">
     {% for item in object.items.all %}
       <article class="mini-card">
         <strong>{{ item.title }}</strong>
-        <p>{{ item.quantity }} ? ${{ item.unit_price }} ? Source {{ item.get_source_display }}</p>
+        <p>Qty {{ item.quantity }} &nbsp;&middot;&nbsp; ${{ item.unit_price }} each</p>
       </article>
     {% endfor %}
   </div>

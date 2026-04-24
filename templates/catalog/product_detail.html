@@ -24,7 +24,6 @@
   </article>
 
   <article class="detail-card">
-    <p class="pill">Fulfilled via {{ object.fulfillment_label }}</p>
     <h1>{{ object.name }}</h1>
     <p class="lead">{{ object.short_description|default:object.description }}</p>
     <div class="prose">{{ object.description|linebreaks }}</div>

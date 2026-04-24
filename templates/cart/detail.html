@@ -16,7 +16,7 @@
       <article class="stack-card">
         <div>
           <h2>{{ item.product.name }}</h2>
-          <p>{{ item.variant.title }} · Fulfilled via {{ item.product.get_default_source_display }}</p>
+          <p>{{ item.variant.title }}</p>
           
           {% if item.quantity > item.variant.effective_max_order_quantity %}
             <p class="warning-text">⚠️ Quantity exceeds allowed maximum ({{ item.variant.effective_max_order_quantity }} max per order)</p>
