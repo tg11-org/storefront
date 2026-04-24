@@ -130,6 +130,52 @@ def create_fulfillment_update(
     return fulfillment_update
 
 
+def send_order_confirmation_email(order: Order) -> bool:
+    """
+    Send a customer-facing order confirmation email after successful payment.
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    recipient_email = order.email
+    if not recipient_email:
+        return False
+
+    shipping = order.shipping_address or {}
+    customer_name = shipping.get('full_name') or (order.user.get_full_name() if order.user else '') or 'Valued Customer'
+
+    context = {
+        'order_number': order.number,
+        'customer_name': customer_name,
+        'items': order.items.all(),
+        'order': order,
+        'order_url': get_order_absolute_url(order),
+        'shipping_address': shipping,
+        'site_name': 'TG11 Shop',
+    }
+
+    try:
+        subject = render_to_string('emails/order_confirmation_subject.txt', context).strip()
+        text_body = render_to_string('emails/order_confirmation_email.txt', context)
+        html_body = render_to_string('emails/order_confirmation_email.html', context)
+    except Exception as e:
+        print(f"Failed to render order confirmation templates for {order.number}: {e}")
+        return False
+
+    try:
+        send_mail(
+            subject=subject,
+            message=text_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient_email],
+            html_message=html_body,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to send order confirmation email for {order.number}: {e}")
+        return False
+
+
 def mark_order_refunded(order: Order, reason: str = '', created_by=None) -> FulfillmentUpdate:
     """
     Mark an order as refunded. Updates order status and creates fulfillment update.

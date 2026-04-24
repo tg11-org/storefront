@@ -14,6 +14,7 @@ from cart.models import Cart
 from catalog.models import ProductVariant
 from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
+from orders.services import send_order_confirmation_email
 
 from .models import PaymentRecord, SavedPaymentMethodRef
 
@@ -248,4 +249,8 @@ def finalize_order_from_checkout_session(session_id: str, order_number: str | No
                 queue_external_fulfillment_for_order(order)
             except Exception:
                 logger.exception('Unable to complete post-payment fulfillment side effects for order %s.', order.number)
+            try:
+                send_order_confirmation_email(order)
+            except Exception:
+                logger.exception('Unable to send order confirmation email for order %s.', order.number)
     return order

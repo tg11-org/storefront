@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; }
+        .header { border-bottom: 2px solid #0f766e; padding-bottom: 20px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #0f766e; }
+        .confirm-badge { display: inline-block; background-color: #d1fae5; color: #065f46; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+        .section { margin: 20px 0; }
+        .section h2 { font-size: 16px; color: #333; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .item-row:last-child { border-bottom: none; }
+        .item-details { flex: 1; }
+        .item-name { font-weight: bold; }
+        .item-meta { color: #666; font-size: 12px; }
+        .item-price { text-align: right; white-space: nowrap; padding-left: 16px; }
+        .total-row { display: flex; justify-content: space-between; padding: 10px 0; font-weight: bold; font-size: 16px; border-top: 2px solid #0f766e; margin-top: 8px; color: #0f766e; }
+        .address-box { background-color: #f9f9f9; padding: 14px; border-radius: 4px; font-size: 14px; line-height: 1.6; }
+        .button { display: inline-block; background-color: #0f766e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 20px; font-weight: bold; }
+        .footer { border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>{{ site_name }}</h1>
+            <p>Order Status: <span class="confirm-badge">✓ Confirmed</span></p>
+        </div>
+
+        <p>Hi {{ customer_name }},</p>
+        <p>Thank you for your order! We've received your payment and your order is now being processed.</p>
+
+        <div class="section">
+            <h2>Order #{{ order_number }}</h2>
+            {% for item in items %}
+            <div class="item-row">
+                <div class="item-details">
+                    <div class="item-name">{{ item.title }}</div>
+                    <div class="item-meta">
+                        {% if item.sku %}SKU: {{ item.sku }}{% endif %}
+                        {% if item.custom_request %} &bull; Custom: {{ item.custom_request }}{% endif %}
+                    </div>
+                </div>
+                <div class="item-price">
+                    {{ item.quantity }} &times; ${{ item.unit_price }}
+                </div>
+            </div>
+            {% endfor %}
+            <div class="total-row">
+                <span>Total Paid</span>
+                <span>${{ order.grand_total }}</span>
+            </div>
+        </div>
+
+        {% with a=shipping_address %}
+        <div class="section">
+            <h2>Shipping To</h2>
+            <div class="address-box">
+                {{ a.full_name }}<br>
+                {% if a.company_name %}{{ a.company_name }}<br>{% endif %}
+                {{ a.line1 }}<br>
+                {% if a.line2 %}{{ a.line2 }}<br>{% endif %}
+                {{ a.city }}, {{ a.state }} {{ a.postal_code }}<br>
+                {{ a.country }}
+            </div>
+        </div>
+        {% endwith %}
+
+        <p>We'll send you another email as soon as your order ships.</p>
+
+        <a href="{{ order_url }}" class="button">View Order Details</a>
+
+        <div class="footer">
+            <p>Thank you for shopping with {{ site_name }}!</p>
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+        </div>
+    </div>
+</body>
+</html>
