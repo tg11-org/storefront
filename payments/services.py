@@ -15,6 +15,7 @@ from catalog.models import ProductVariant
 from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
 from orders.services import send_order_confirmation_email
+from pricing.models import Coupon, CouponRedemption
 
 from .models import PaymentRecord, SavedPaymentMethodRef
 
@@ -60,26 +61,42 @@ def create_checkout_session(order: Order, success_url: str, cancel_url: str):
     client = get_stripe_client()
     customer_id = ensure_stripe_customer(order.user) if order.user else None
     line_items = []
-    for item in order.items.all():
+    use_summary_line = order.discount_total or order.shipping_total or order.tax_total
+    if use_summary_line:
         line_items.append(
             {
                 'price_data': {
                     'currency': settings.STRIPE_CURRENCY,
                     'product_data': {
-                        'name': item.title,
-                        'metadata': {'sku': item.sku, 'source': item.source, 'custom_request': item.custom_request[:500]},
+                        'name': f'Order {order.number}',
+                        'metadata': {'order_number': order.number},
                     },
-                    'unit_amount': _amount_to_cents(item.unit_price),
+                    'unit_amount': _amount_to_cents(order.grand_total),
                 },
-                'quantity': item.quantity,
+                'quantity': 1,
             }
         )
+    else:
+        for item in order.items.all():
+            line_items.append(
+                {
+                    'price_data': {
+                        'currency': settings.STRIPE_CURRENCY,
+                        'product_data': {
+                            'name': item.title,
+                            'metadata': {'sku': item.sku, 'source': item.source, 'custom_request': item.custom_request[:500]},
+                        },
+                        'unit_amount': _amount_to_cents(item.unit_price),
+                    },
+                    'quantity': item.quantity,
+                }
+            )
 
     session = client.checkout.Session.create(
         mode='payment',
         customer=customer_id,
         client_reference_id=order.number,
-        metadata={'order_number': order.number, 'user_id': str(order.user_id or '')},
+        metadata={'order_number': order.number, 'user_id': str(order.user_id or ''), 'expected_total': str(order.grand_total)},
         line_items=line_items,
         success_url=success_url,
         cancel_url=cancel_url,
@@ -188,6 +205,8 @@ def send_internal_fulfillment_email(order: Order) -> None:
         f'Order: {order.number}\n'
         f'Customer email: {order.email}\n'
         f'Paid total: ${order.grand_total}\n\n'
+        f'Discounts: ${order.discount_total}\n'
+        f'Shipping: ${order.shipping_total}\n\n'
         f'Items:\n{item_lines}\n\n'
         f'Ship to:\n{_format_address(order.shipping_address)}\n\n'
         f'Notes:\n{order.notes or "None"}\n'
@@ -244,13 +263,23 @@ def finalize_order_from_checkout_session(session_id: str, order_number: str | No
             order.cart.items.all().delete()
         if not was_paid:
             try:
+                if order.coupon_code:
+                    coupon = Coupon.objects.filter(code=order.coupon_code).first()
+                    if coupon:
+                        CouponRedemption.objects.get_or_create(
+                            coupon=coupon,
+                            order=order,
+                            defaults={'user': order.user, 'email': order.email},
+                        )
+                        Coupon.objects.filter(pk=coupon.pk).update(usage_count=F('usage_count') + 1)
                 decrement_internal_inventory(order)
                 send_internal_fulfillment_email(order)
                 queue_external_fulfillment_for_order(order)
             except Exception:
                 logger.exception('Unable to complete post-payment fulfillment side effects for order %s.', order.number)
-            try:
-                send_order_confirmation_email(order)
-            except Exception:
-                logger.exception('Unable to send order confirmation email for order %s.', order.number)
+            if order.user_id:
+                try:
+                    send_order_confirmation_email(order)
+                except Exception:
+                    logger.exception('Unable to send order confirmation email for order %s.', order.number)
     return order

@@ -9,6 +9,7 @@ from accounts.models import Address
 from catalog.models import Product, ProductVariant
 from cart.models import Cart
 from orders.models import Order
+from pricing.models import ShippingMethod, ShippingRateRule, ShippingZone
 
 
 class CheckoutTests(TestCase):
@@ -31,11 +32,16 @@ class CheckoutTests(TestCase):
         self.client.login(email='buyer@example.com', password='StrongPass123!')
         cart = Cart.objects.create(user=self.user)
         cart.items.create(product=self.product, variant=self.variant, quantity=1, custom_request='Make it extra soft')
+        zone = ShippingZone.objects.create(name='US', countries='US')
+        method = ShippingMethod.objects.create(name='Standard')
+        self.shipping_rule = ShippingRateRule.objects.create(zone=zone, method=method, amount='6.95', fallback=True)
 
     @patch('checkout.views.create_checkout_session')
     def test_checkout_creates_order_and_redirects_to_stripe(self, mock_create_checkout_session):
         mock_create_checkout_session.return_value.url = 'https://checkout.stripe.test/session'
-        response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+        preview_response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+        self.assertEqual(preview_response.status_code, 200)
+        response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True, 'shipping_rate_rule': f'rule:{self.shipping_rule.pk}', 'confirm_checkout': '1'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, 'https://checkout.stripe.test/session')
         order = Order.objects.get()

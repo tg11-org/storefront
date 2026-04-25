@@ -1,5 +1,7 @@
 import stripe
 import logging
+import hashlib
+import json
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -12,6 +14,7 @@ from cart.views import get_or_create_cart
 from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
 from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
+from pricing.services import calculate_cart_totals, quote_shipping_methods, shipping_quote_from_snapshot
 
 from .forms import CheckoutForm
 
@@ -42,15 +45,37 @@ class CheckoutView(LoginRequiredMixin, FormView):
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['coupon_code'] = self.cart.applied_coupon_code
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cart'] = self.cart
+        context['totals'] = calculate_cart_totals(
+            self.cart,
+            self.request.user,
+            coupon_code=self.cart.applied_coupon_code,
+        )
         return context
 
     def form_valid(self, form):
-        shipping_address = self._resolve_shipping_address(form)
-        billing_address = self._resolve_billing_address(form, shipping_address)
-        order = self._build_order(form, shipping_address, billing_address)
+        preview_only = self.request.POST.get('confirm_checkout') != '1'
+        shipping_address = self._resolve_shipping_address(form, save_new=not preview_only)
+        billing_address = self._resolve_billing_address(form, shipping_address, save_new=not preview_only)
+        if self.request.POST.get('confirm_checkout') != '1':
+            quotes = quote_shipping_methods(shipping_address.as_dict(), self.cart)
+            self._store_quote_preview(shipping_address.as_dict(), quotes)
+            context = self.get_context_data(form=form)
+            context['shipping_quotes'] = quotes
+            context['quote_preview_ready'] = True
+            context['shipping_signature'] = self._cart_address_signature(shipping_address.as_dict())
+            return self.render_to_response(context)
+        try:
+            order = self._build_order(form, shipping_address, billing_address)
+        except ValueError:
+            return self.form_invalid(form)
         try:
             session = create_checkout_session(
                 order,
@@ -64,11 +89,31 @@ class CheckoutView(LoginRequiredMixin, FormView):
             return self.form_invalid(form)
         return redirect(session.url, permanent=False)
 
-    def _resolve_shipping_address(self, form):
+    def _cart_address_signature(self, shipping_address: dict) -> str:
+        cart_bits = [
+            {
+                'variant': item.variant_id,
+                'quantity': item.quantity,
+                'custom_request': item.custom_request,
+                'updated_at': item.updated_at.isoformat(),
+            }
+            for item in self.cart.items.order_by('pk')
+        ]
+        payload = {'cart': cart_bits, 'shipping_address': shipping_address}
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode('utf-8')).hexdigest()
+
+    def _store_quote_preview(self, shipping_address: dict, quotes) -> None:
+        self.request.session['checkout_quote_preview'] = {
+            'signature': self._cart_address_signature(shipping_address),
+            'quotes': [quote.snapshot() for quote in quotes],
+        }
+        self.request.session.modified = True
+
+    def _resolve_shipping_address(self, form, save_new=True):
         address = form.cleaned_data['shipping_address']
         if address:
             return address
-        address = Address.objects.create(
+        address = Address(
             user=self.request.user,
             address_type=Address.AddressType.SHIPPING,
             label='Checkout shipping',
@@ -83,17 +128,20 @@ class CheckoutView(LoginRequiredMixin, FormView):
             phone_number=form.cleaned_data['phone_number'],
             is_default=form.cleaned_data['save_address'],
         )
+        if not save_new:
+            return address
+        address.save()
         if address.is_default:
             self.request.user.addresses.filter(address_type=Address.AddressType.SHIPPING).exclude(pk=address.pk).update(is_default=False)
         return address
 
-    def _resolve_billing_address(self, form, shipping_address):
+    def _resolve_billing_address(self, form, shipping_address, save_new=True):
         if form.cleaned_data['same_as_shipping']:
             return shipping_address
         address = form.cleaned_data['billing_address']
         if address:
             return address
-        return Address.objects.create(
+        address = Address(
             user=self.request.user,
             address_type=Address.AddressType.BILLING,
             label='Checkout billing',
@@ -105,6 +153,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
             postal_code=form.cleaned_data['billing_postal_code'],
             country=form.cleaned_data['billing_country'],
         )
+        if save_new:
+            address.save()
+        return address
 
     def _build_order(self, form, shipping_address, billing_address):
         source = Order.Source.INTERNAL
@@ -114,7 +165,26 @@ class CheckoutView(LoginRequiredMixin, FormView):
         elif any(item.product.default_source == 'popcustoms' for item in cart_items):
             source = Order.Source.POPCUSTOMS
 
-        subtotal = self.cart.subtotal
+        coupon_code = form.cleaned_data.get('coupon_code') or self.cart.applied_coupon_code
+        selected_quote_id = form.cleaned_data.get('shipping_rate_rule')
+        quote_preview = self.request.session.get('checkout_quote_preview') or {}
+        if quote_preview.get('signature') != self._cart_address_signature(shipping_address.as_dict()):
+            form.add_error(None, 'Shipping quotes changed. Review shipping again before payment.')
+            raise ValueError('Stale shipping quote')
+        if quote_preview.get('quotes') and selected_quote_id not in {quote['quote_id'] for quote in quote_preview['quotes']}:
+            form.add_error('shipping_rate_rule', 'Choose a shipping method.')
+            raise ValueError('Missing shipping quote')
+        totals = calculate_cart_totals(
+            self.cart,
+            self.request.user,
+            shipping_address=shipping_address.as_dict(),
+            coupon_code=coupon_code,
+            shipping_quote_id=selected_quote_id,
+            shipping_quotes=[shipping_quote_from_snapshot(quote) for quote in quote_preview.get('quotes', [])],
+        )
+        if coupon_code and not totals.coupon:
+            form.add_error('coupon_code', 'Coupon could not be applied.')
+            raise ValueError('Invalid coupon')
         order = Order.objects.create(
             user=self.request.user,
             cart=self.cart,
@@ -124,8 +194,20 @@ class CheckoutView(LoginRequiredMixin, FormView):
             sync_state=Order.SyncState.PENDING if source != Order.Source.INTERNAL else Order.SyncState.NOT_APPLICABLE,
             shipping_address=shipping_address.as_dict(),
             billing_address=billing_address.as_dict(),
-            subtotal=subtotal,
-            grand_total=subtotal,
+            subtotal=totals.subtotal,
+            discount_total=totals.discount_total,
+            tax_total=totals.tax_total,
+            shipping_total=totals.shipping_total,
+            grand_total=totals.grand_total,
+            coupon_code=totals.coupon.code if totals.coupon else '',
+            discount_snapshot=[
+                {'kind': rule.kind, 'code': rule.code, 'label': rule.label, 'amount': str(rule.amount), 'metadata': rule.metadata}
+                for rule in totals.applied_rules
+            ],
+            shipping_method=totals.shipping_quote.method_name if totals.shipping_quote else '',
+            shipping_rate_snapshot=totals.shipping_quote.snapshot() if totals.shipping_quote else {},
+            tax_snapshot=totals.tax_snapshot,
+            pricing_snapshot=totals.audit_snapshot(),
             notes=form.cleaned_data['notes'],
         )
         OrderItem.objects.bulk_create([
@@ -143,6 +225,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
             )
             for cart_item in cart_items
         ])
+        if totals.coupon:
+            self.cart.applied_coupon_code = totals.coupon.code
+            self.cart.save(update_fields=['applied_coupon_code', 'updated_at'])
         return order
 
     def _external_listing_id(self, cart_item):

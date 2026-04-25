@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
@@ -66,6 +67,12 @@ class ProductVariant(models.Model):
     sku = models.CharField(max_length=64, unique=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    supplier_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    supplier_compare_at = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    supplier_sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    supplier_sale_start = models.DateTimeField(null=True, blank=True)
+    supplier_sale_end = models.DateTimeField(null=True, blank=True)
+    last_sync_at = models.DateTimeField(null=True, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
     max_order_quantity = models.PositiveIntegerField(
         null=True,
@@ -74,6 +81,12 @@ class ProductVariant(models.Model):
     )
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    weight_oz = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    length_in = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    width_in = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    height_in = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    origin_country = models.CharField(max_length=2, default='US')
+    hs_code = models.CharField(max_length=32, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -160,3 +173,39 @@ class StorePage(models.Model):
 
     def get_absolute_url(self):
         return reverse('catalog:page_detail', args=[self.slug])
+
+
+class StoreSettings(models.Model):
+    name = models.CharField(max_length=120, default='TG11 Shop')
+    tagline = models.CharField(max_length=255, default='Products, checkout, and fulfillment in one place.')
+    motd = models.CharField(max_length=255, default='TG11 Shop control deck: products, checkout, and fulfillment in one place.')
+    support_email = models.EmailField(default='support@shop.tg11.org')
+    footer_text = models.CharField(
+        max_length=255,
+        default='Payments run through Stripe Checkout. Fulfillment jobs queue after payment.',
+    )
+    logo = models.ImageField(upload_to='store/branding/', blank=True)
+    favicon = models.ImageField(upload_to='store/branding/', blank=True)
+    social_image = models.ImageField(upload_to='store/branding/', blank=True)
+    free_shipping_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('100.00'))
+    currency = models.CharField(max_length=8, default='usd')
+    order_prefix = models.CharField(max_length=12, default='TG11')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Store settings'
+        verbose_name_plural = 'Store settings'
+
+    def __str__(self) -> str:
+        return self.name
+
+    @classmethod
+    def current(cls):
+        settings_obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'name': getattr(settings, 'STORE_NAME', 'TG11 Shop'),
+                'currency': getattr(settings, 'STRIPE_CURRENCY', 'usd'),
+            },
+        )
+        return settings_obj

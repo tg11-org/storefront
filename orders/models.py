@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
+from catalog.models import StoreSettings
 
 
 class Order(models.Model):
@@ -49,9 +50,16 @@ class Order(models.Model):
     billing_address = models.JSONField(default=dict, blank=True)
     notes = models.TextField(blank=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    discount_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     tax_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     shipping_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    coupon_code = models.CharField(max_length=48, blank=True)
+    discount_snapshot = models.JSONField(default=list, blank=True)
+    tax_snapshot = models.JSONField(default=dict, blank=True)
+    shipping_method = models.CharField(max_length=120, blank=True)
+    shipping_rate_snapshot = models.JSONField(default=dict, blank=True)
+    pricing_snapshot = models.JSONField(default=dict, blank=True)
     stripe_checkout_session_id = models.CharField(max_length=255, blank=True)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -67,7 +75,11 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.number:
-            self.number = f'TG11-{uuid4().hex[:10].upper()}'
+            try:
+                prefix = StoreSettings.current().order_prefix
+            except Exception:
+                prefix = 'TG11'
+            self.number = f'{prefix}-{uuid4().hex[:10].upper()}'
         super().save(*args, **kwargs)
 
     @property

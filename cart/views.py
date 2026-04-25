@@ -5,8 +5,17 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from catalog.models import Product, ProductVariant
+from pricing.services import calculate_cart_totals
 
 from .models import Cart, CartItem
+
+
+def _posted_quantity(request, default: int, minimum: int) -> int:
+    try:
+        quantity = int(request.POST.get('quantity', default))
+    except (TypeError, ValueError):
+        return default
+    return max(quantity, minimum)
 
 
 def _requested_quantity(cart: Cart, variant: ProductVariant, quantity: int, exclude_item: CartItem | None = None) -> int:
@@ -52,14 +61,41 @@ def get_or_create_cart(request, create: bool = True) -> Cart | None:
 
 def cart_detail(request):
     cart = get_or_create_cart(request)
-    return render(request, 'cart/detail.html', {'cart': cart})
+    totals = calculate_cart_totals(cart, request.user if request.user.is_authenticated else None, coupon_code=cart.applied_coupon_code) if cart else None
+    return render(request, 'cart/detail.html', {'cart': cart, 'totals': totals})
+
+
+@require_POST
+def apply_coupon(request):
+    cart = get_or_create_cart(request)
+    code = request.POST.get('coupon_code', '').strip().upper()
+    totals = calculate_cart_totals(cart, request.user if request.user.is_authenticated else None, coupon_code=code)
+    rejected = next((rule for rule in totals.applied_rules if rule.kind == 'coupon_rejected'), None)
+    if rejected:
+        messages.error(request, rejected.label)
+    elif totals.coupon:
+        cart.applied_coupon_code = totals.coupon.code
+        cart.save(update_fields=['applied_coupon_code', 'updated_at'])
+        messages.success(request, f'Coupon {totals.coupon.code} applied.')
+    else:
+        messages.error(request, 'Enter a valid coupon code.')
+    return redirect('cart:detail')
+
+
+@require_POST
+def remove_coupon(request):
+    cart = get_or_create_cart(request)
+    cart.applied_coupon_code = ''
+    cart.save(update_fields=['applied_coupon_code', 'updated_at'])
+    messages.info(request, 'Coupon removed.')
+    return redirect('cart:detail')
 
 
 @require_POST
 def add_to_cart(request, slug):
     product = get_object_or_404(Product, slug=slug, is_active=True)
     variant_id = request.POST.get('variant_id')
-    quantity = max(int(request.POST.get('quantity', 1)), 1)
+    quantity = _posted_quantity(request, 1, 1)
     variant = get_object_or_404(ProductVariant, pk=variant_id, product=product, is_active=True) if variant_id else product.primary_variant
     custom_request = request.POST.get('custom_request', '').strip() if product.allow_custom_requests else ''
     cart = get_or_create_cart(request)
@@ -79,7 +115,7 @@ def add_to_cart(request, slug):
 def update_cart_item(request, pk):
     cart = get_or_create_cart(request)
     item = get_object_or_404(CartItem, pk=pk, cart=cart)
-    quantity = max(int(request.POST.get('quantity', 1)), 0)
+    quantity = _posted_quantity(request, 1, 0)
     if quantity == 0:
         item.delete()
         messages.info(request, 'Item removed from your cart.')

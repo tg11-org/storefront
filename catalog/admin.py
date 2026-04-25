@@ -1,12 +1,12 @@
 from django.contrib import admin
 
-from .models import Product, ProductImage, ProductVariant, StorePage, ProductVideo
+from .models import Product, ProductImage, ProductVariant, StorePage, ProductVideo, StoreSettings
 
 
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 1
-    fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_default', 'is_active')
+    fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_default', 'is_active')
 
 
 class ProductImageInline(admin.TabularInline):
@@ -33,9 +33,14 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'title', 'price', 'stock_quantity', 'max_order_quantity', 'is_active')
+    list_display = ('sku', 'product', 'title', 'price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_active')
     list_filter = ('is_active', 'is_default')
     search_fields = ('sku', 'product__name', 'title')
+    fieldsets = (
+        (None, {'fields': ('product', 'title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_default', 'is_active')}),
+        ('Shipping', {'fields': ('weight_oz', 'length_in', 'width_in', 'height_in', 'origin_country', 'hs_code')}),
+        ('Supplier pricing', {'fields': ('supplier_price', 'supplier_compare_at', 'supplier_sale_price', 'supplier_sale_start', 'supplier_sale_end', 'last_sync_at')}),
+    )
 
 
 @admin.register(ProductImage)
@@ -57,3 +62,14 @@ class StorePageAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'slug', 'summary', 'body')
     filter_horizontal = ('products',)
+
+
+@admin.register(StoreSettings)
+class StoreSettingsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'support_email', 'currency', 'free_shipping_threshold', 'order_prefix', 'updated_at')
+
+    def has_add_permission(self, request):
+        return not StoreSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -11,6 +11,7 @@ from catalog.models import Product, ProductVariant
 class Cart(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='carts')
     session_key = models.CharField(max_length=64, blank=True, db_index=True)
+    applied_coupon_code = models.CharField(max_length=48, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     checked_out_at = models.DateTimeField(null=True, blank=True)

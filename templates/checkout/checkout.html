@@ -26,6 +26,25 @@
     </div>
     <label class="checkbox-row">{{ form.save_address }} Save this shipping address</label>
     <label class="checkbox-row">{{ form.same_as_shipping }} Billing is the same as shipping</label>
+    {% if shipping_quotes %}
+      <div class="shipping-options">
+        <h3>Shipping method</h3>
+        {% for quote in shipping_quotes %}
+          <label class="shipping-option">
+            <input type="radio" name="shipping_rate_rule" value="{{ quote.quote_id }}" {% if forloop.first %}checked{% endif %}>
+            <span>
+              <strong>{{ quote.carrier }} {{ quote.method_name }}</strong>
+              <small>{{ quote.estimated_min_days }}{% if quote.estimated_max_days != quote.estimated_min_days %}-{{ quote.estimated_max_days }}{% endif %} business days{% if quote.fallback %} fallback{% endif %}</small>
+            </span>
+            <strong>${{ quote.amount }}</strong>
+          </label>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="confirm_checkout" value="1">
+      <input type="hidden" name="shipping_signature" value="{{ shipping_signature }}">
+    {% else %}
+      {{ form.shipping_rate_rule.as_hidden }}
+    {% endif %}
   </section>
 
   <section class="stack-card">
@@ -40,6 +59,7 @@
       {{ form.billing_postal_code.label_tag }}{{ form.billing_postal_code }}
       {{ form.billing_country.label_tag }}{{ form.billing_country }}
     </div>
+    {{ form.coupon_code.label_tag }}{{ form.coupon_code }}
     {{ form.notes.label_tag }}{{ form.notes }}
   </section>
 
@@ -54,11 +74,48 @@
         <strong>${{ item.line_total }}</strong>
       </div>
     {% endfor %}
-    <div class="summary-line total"><span>Total</span><strong>${{ cart.subtotal }}</strong></div>
+    <div class="summary-line"><span>Subtotal</span><strong>${{ totals.subtotal }}</strong></div>
+    {% if totals.discount_total %}
+      <div class="summary-line"><span>Discount</span><strong>-${{ totals.discount_total }}</strong></div>
+    {% endif %}
+    {% if totals.shipping_total %}
+      <div class="summary-line"><span>Shipping</span><strong>${{ totals.shipping_total }}</strong></div>
+    {% endif %}
+    {% if totals.tax_total %}
+      <div class="summary-line"><span>Tax</span><strong>${{ totals.tax_total }}</strong></div>
+    {% endif %}
+    <div class="summary-line total"><span>Total</span><strong>${{ totals.grand_total }}</strong></div>
     {% if form.errors %}
       <div class="error-list">{{ form.errors }}</div>
     {% endif %}
-    <button class="button primary" type="submit">Proceed to Stripe</button>
+    <button class="button primary" type="submit">{% if quote_preview_ready %}Proceed to Stripe{% else %}Get shipping rates{% endif %}</button>
   </aside>
 </form>
+
+<style>
+  .shipping-options {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .shipping-option {
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: auto 1fr auto;
+    padding: 0.75rem;
+  }
+
+  .shipping-option span {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .shipping-option small {
+    color: var(--muted);
+  }
+</style>
 {% endblock %}

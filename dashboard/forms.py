@@ -68,7 +68,49 @@ class ProductCreateForm(forms.ModelForm):
 class DefaultVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_active')
+        fields = (
+            'title',
+            'sku',
+            'price',
+            'compare_at_price',
+            'stock_quantity',
+            'max_order_quantity',
+            'weight_oz',
+            'length_in',
+            'width_in',
+            'height_in',
+            'origin_country',
+            'hs_code',
+            'supplier_price',
+            'supplier_compare_at',
+            'supplier_sale_price',
+            'supplier_sale_start',
+            'supplier_sale_end',
+            'is_active',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        optional_fields = [
+            'compare_at_price',
+            'max_order_quantity',
+            'weight_oz',
+            'length_in',
+            'width_in',
+            'height_in',
+            'origin_country',
+            'hs_code',
+            'supplier_price',
+            'supplier_compare_at',
+            'supplier_sale_price',
+            'supplier_sale_start',
+            'supplier_sale_end',
+        ]
+        for field_name in optional_fields:
+            self.fields[field_name].required = False
+        for field_name in ['weight_oz', 'length_in', 'width_in', 'height_in']:
+            self.fields[field_name].initial = '0.00'
+        self.fields['origin_country'].initial = 'US'
 
 
 class StorePageCreateForm(forms.ModelForm):

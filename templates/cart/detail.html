@@ -48,8 +48,29 @@
     {% endfor %}
   </div>
   <section class="summary-card">
+    <form method="post" action="{% url 'cart:apply_coupon' %}" class="coupon-form">
+      {% csrf_token %}
+      <label for="coupon_code">Coupon</label>
+      <div class="quantity-wrapper">
+        <input id="coupon_code" name="coupon_code" value="{{ cart.applied_coupon_code }}" class="quantity-input" placeholder="Code">
+        <button class="button" type="submit">Apply</button>
+      </div>
+    </form>
+    {% if cart.applied_coupon_code %}
+      <form method="post" action="{% url 'cart:remove_coupon' %}">
+        {% csrf_token %}
+        <button class="button ghost" type="submit">Remove coupon</button>
+      </form>
+    {% endif %}
     <p>Subtotal</p>
-    <h2>${{ cart.subtotal }}</h2>
+    <h2>${{ totals.subtotal }}</h2>
+    {% if totals.discount_total %}
+      <p>Discount: -${{ totals.discount_total }}</p>
+    {% endif %}
+    {% if totals.shipping_total %}
+      <p>Estimated shipping: ${{ totals.shipping_total }}</p>
+    {% endif %}
+    <p><strong>Total: ${{ totals.grand_total }}</strong></p>
   </section>
 {% else %}
   <section class="empty-state">
@@ -85,7 +106,7 @@
   }
 
   .warning-text {
-    color: #d97706;
+    color: var(--warning);
     font-weight: 600;
     font-size: 0.875rem;
   }
@@ -115,6 +136,13 @@
   }
 
   .summary-card { text-align: right; }
+
+  .coupon-form {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: left;
+  }
 
   .summary-card p {
     margin-bottom: 0.5rem;

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+import logging
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -66,6 +67,7 @@ INSTALLED_APPS = [
     'checkout',
     'orders',
     'payments',
+    'pricing',
     'connectors',
     'dashboard',
 ]
@@ -95,6 +97,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'cart.context_processors.cart_summary',
+                'catalog.context_processors.store_settings',
             ],
         },
     },
@@ -190,6 +193,50 @@ ETSY_API_KEY = env('ETSY_API_KEY', '')
 ETSY_SHARED_SECRET = env('ETSY_SHARED_SECRET', '')
 SITE_URL = env('SITE_URL', 'https://shop.tg11.org')
 
+REQUIRED_ENV_KEYS = env_list(
+    'REQUIRED_ENV_KEYS',
+    [
+        'SITE_URL',
+        'STRIPE_SECRET_KEY',
+        'STRIPE_PUBLISHABLE_KEY',
+        'STRIPE_WEBHOOK_SECRET',
+        'DEFAULT_FROM_EMAIL',
+        'EMAIL_BACKEND',
+    ],
+)
+ENABLE_PROMOTIONS = env_bool('ENABLE_PROMOTIONS', True)
+ENABLE_SHIPPING_ENGINE = env_bool('ENABLE_SHIPPING_ENGINE', True)
+ENABLE_LIVE_SHIPPING_RATES = env_bool('ENABLE_LIVE_SHIPPING_RATES', False)
+ENABLE_SHIPPING_FALLBACK_RATES = env_bool('ENABLE_SHIPPING_FALLBACK_RATES', True)
+INCLUDE_FALLBACK_WITH_LIVE_RATES = env_bool('INCLUDE_FALLBACK_WITH_LIVE_RATES', False)
+SHIPPING_RATE_PROVIDER = env('SHIPPING_RATE_PROVIDER', 'rules')
+SHIPPING_PROVIDER_TIMEOUT_SECONDS = int(env('SHIPPING_PROVIDER_TIMEOUT_SECONDS', '8'))
+LIVE_SHIPPING_DEFAULT_DAYS = int(env('LIVE_SHIPPING_DEFAULT_DAYS', '5'))
+EASYPOST_API_KEY = env('EASYPOST_API_KEY', '')
+EASYPOST_API_URL = env('EASYPOST_API_URL', 'https://api.easypost.com/v2')
+EASYPOST_TRACKING_URL = env('EASYPOST_TRACKING_URL', '')
+EASYPOST_WEBHOOK_URL = env('EASYPOST_WEBHOOK_URL', '')
+EASYPOST_WEBHOOK_SECRET = env('EASYPOST_WEBHOOK_SECRET', '')
+SHIPPO_API_TOKEN = env('SHIPPO_API_TOKEN', '')
+SHIPPO_API_URL = env('SHIPPO_API_URL', 'https://api.goshippo.com')
+SHIPPO_WEBHOOK_URL = env('SHIPPO_WEBHOOK_URL', '')
+SHIPPO_WEBHOOK_SECRET = env('SHIPPO_WEBHOOK_SECRET', '')
+SHIP_FROM_NAME = env('SHIP_FROM_NAME', 'TG11 Shop')
+SHIP_FROM_COMPANY = env('SHIP_FROM_COMPANY', 'TG11 LLC')
+SHIP_FROM_LINE1 = env('SHIP_FROM_LINE1', '')
+SHIP_FROM_LINE2 = env('SHIP_FROM_LINE2', '')
+SHIP_FROM_CITY = env('SHIP_FROM_CITY', '')
+SHIP_FROM_STATE = env('SHIP_FROM_STATE', '')
+SHIP_FROM_POSTAL_CODE = env('SHIP_FROM_POSTAL_CODE', '')
+SHIP_FROM_COUNTRY = env('SHIP_FROM_COUNTRY', 'US')
+SHIP_FROM_PHONE = env('SHIP_FROM_PHONE', '')
+SHIP_FROM_EMAIL = env('SHIP_FROM_EMAIL', SERVER_EMAIL)
+TAX_PROVIDER = env('TAX_PROVIDER', 'none')
+TAX_PROVIDER_REQUIRED = env_bool('TAX_PROVIDER_REQUIRED', False)
+STRIPE_TAX_ENABLED = env_bool('STRIPE_TAX_ENABLED', False)
+STRIPE_TAX_BEHAVIOR = env('STRIPE_TAX_BEHAVIOR', 'exclusive')
+PRICING_ALERT_EMAILS_ENABLED = env_bool('PRICING_ALERT_EMAILS_ENABLED', False)
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', not DEBUG)
@@ -210,3 +257,31 @@ LOGGING = {
     },
     'root': {'handlers': ['console'], 'level': env('DJANGO_LOG_LEVEL', 'INFO')},
 }
+
+SENTRY_DSN = env('SENTRY_DSN', '')
+SENTRY_ENVIRONMENT = env('SENTRY_ENVIRONMENT', 'production' if not DEBUG else 'development')
+SENTRY_RELEASE = env('SENTRY_RELEASE', '')
+SENTRY_TRACES_SAMPLE_RATE = float(env('SENTRY_TRACES_SAMPLE_RATE', '0.0'))
+SENTRY_PROFILES_SAMPLE_RATE = float(env('SENTRY_PROFILES_SAMPLE_RATE', '0.0'))
+SENTRY_SEND_DEFAULT_PII = env_bool('SENTRY_SEND_DEFAULT_PII', False)
+
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[
+                DjangoIntegration(),
+                LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
+            ],
+            environment=SENTRY_ENVIRONMENT,
+            release=SENTRY_RELEASE or None,
+            traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+            profiles_sample_rate=SENTRY_PROFILES_SAMPLE_RATE,
+            send_default_pii=SENTRY_SEND_DEFAULT_PII,
+        )
+    except ImportError:
+        logging.getLogger(__name__).warning('SENTRY_DSN is set but sentry-sdk is not installed.')

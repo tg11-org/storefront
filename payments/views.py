@@ -63,12 +63,14 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return HttpResponseBadRequest('Invalid signature')
 
-    event_type = event['type']
-    data = event['data']['object']
+    event_type = event.get('type', '')
+    data = event.get('data', {}).get('object', {})
 
     if event_type == 'checkout.session.completed':
         if data.get('mode') == 'payment':
-            finalize_order_from_checkout_session(data['id'])
+            session_id = data.get('id')
+            if session_id:
+                finalize_order_from_checkout_session(session_id)
         elif data.get('mode') == 'setup' and data.get('metadata', {}).get('user_id'):
             user = CustomUser.objects.filter(pk=data['metadata']['user_id']).first()
             if user:

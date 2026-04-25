@@ -54,6 +54,47 @@ git pull
 docker compose up --build -d
 ```
 
+## Multi-store deployment strategy
+
+Use one deployment directory per storefront while keeping this repository as the shared codebase:
+
+- `/var/www/bettercorporatelogowear`
+- `/var/www/fortheybythem`
+
+Each deployment gets its own `.env`, PostgreSQL database, `media/` directory, `staticfiles/` directory, Stripe keys, Apache vhost, and log units. Keep merchandising/content in the database through the dashboard/admin, and keep secrets/infra only in `.env`.
+
+Suggested per-store differences:
+
+```env
+SITE_URL=https://bettercorporatelogowear.example
+DJANGO_ALLOWED_HOSTS=bettercorporatelogowear.example
+DJANGO_CSRF_TRUSTED_ORIGINS=https://bettercorporatelogowear.example
+POSTGRES_DB=bettercorporatelogowear
+POSTGRES_USER=bettercorporatelogowear
+DB_PORT=55433
+APP_HOST=127.6.1.10
+GUNICORN_BIND=127.6.1.10:8000
+STRIPE_SECRET_KEY=sk_live_store_specific
+STRIPE_PUBLISHABLE_KEY=pk_live_store_specific
+STRIPE_WEBHOOK_SECRET=whsec_store_specific
+```
+
+Release flow stays independent: merge to the shared branch, then `git pull && docker compose up --build -d` in only the storefront directory you want to roll out. Promote to the second storefront after smoke tests and controlled checkout tests pass.
+
+### Per-store health checks
+
+```bash
+docker compose ps
+docker compose exec web python manage.py check --deploy
+docker compose exec web python manage.py smoke_storefront
+docker compose exec web python manage.py seed_shipping
+docker compose exec web python manage.py reconcile_payments
+curl -fsS https://YOUR_STORE_DOMAIN/health/
+sudo journalctl -u storefront -n 100 --no-pager
+sudo journalctl -u storefront-logs@web -n 100 --no-pager
+sudo journalctl -u storefront-logs@db -n 100 --no-pager
+```
+
 ## SMTP sanity check
 
 Signup sends verification email immediately. If SMTP is misconfigured, signup can fail.
@@ -180,6 +221,10 @@ systemctl reload apache2
 - `DB_PORT=55432`
 - `GUNICORN_BIND=127.6.0.10:8000`
 - `STRIPE_ACCOUNT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `ENABLE_PROMOTIONS`, `ENABLE_SHIPPING_ENGINE`
+- `ENABLE_LIVE_SHIPPING_RATES`, `SHIPPING_RATE_PROVIDER`, `EASYPOST_API_KEY`, `SHIPPO_API_TOKEN`
+- `SHIP_FROM_NAME`, `SHIP_FROM_LINE1`, `SHIP_FROM_CITY`, `SHIP_FROM_STATE`, `SHIP_FROM_POSTAL_CODE`, `SHIP_FROM_COUNTRY`
+- `TAX_PROVIDER`, `STRIPE_TAX_ENABLED`, `STRIPE_TAX_BEHAVIOR`
 - `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_API_HEADER`
 - `ETSY_API_KEY`, `ETSY_SHARED_SECRET`
 - `FULFILLMENT_EMAIL_RECIPIENTS`
@@ -221,6 +266,73 @@ Create local inventory from `/dashboard/manage/products/new/` by setting the ful
 Enable custom requests on products that need customer input, such as resin dice colors, gift notes, or made-to-order details. Products without custom requests enabled keep the normal product page without an extra field.
 
 When Stripe marks an internal order as paid, TG11 Shop decrements the variant stock and sends a fulfillment email to `FULFILLMENT_EMAIL_RECIPIENTS` with the order number, items, customer email, shipping address, and notes. Multiple Stripe confirmations for the same order do not decrement stock or send the email again.
+
+## Pricing, coupons, and shipping
+
+Pricing is centralized in `pricing.services.calculate_cart_totals()`. Cart pages, checkout order creation, order audit snapshots, and Stripe Checkout line-item generation use the same totals path so discounts, shipping, tax, and grand totals stay consistent.
+
+Models in the `pricing` app cover:
+
+- `Promotion` and `PromotionScope` for percent-off, fixed-off, sale-price placeholders, and free-shipping rules scoped to products, SKUs, pages, or global.
+- `Coupon` and `CouponRedemption` for codes, active windows, usage caps, first-order-only rules, and audit history.
+- `ShippingZone`, `ShippingMethod`, and `ShippingRateRule` for rule-based domestic/international fallback rates.
+
+Seed baseline fallback rates with:
+
+```bash
+docker compose exec web python manage.py seed_shipping
+```
+
+Daily reconciliation can be run manually or from a timer:
+
+```bash
+docker compose exec web python manage.py reconcile_payments
+```
+
+Carrier APIs are behind the shipping quote service. Phase 1 uses in-app fallback rates. Phase 2 is implemented with provider adapters for EasyPost and Shippo:
+
+```env
+ENABLE_LIVE_SHIPPING_RATES=1
+SHIPPING_RATE_PROVIDER=easypost
+EASYPOST_API_KEY=...
+```
+
+or:
+
+```env
+ENABLE_LIVE_SHIPPING_RATES=1
+SHIPPING_RATE_PROVIDER=shippo
+SHIPPO_API_TOKEN=...
+```
+
+Live rates require the ship-from fields in `.env`. If the carrier provider fails and `ENABLE_SHIPPING_FALLBACK_RATES=1`, checkout falls back to active `ShippingRateRule` records and logs/sends an ops alert if `PRICING_ALERT_EMAILS_ENABLED=1`.
+
+Provider webhook endpoints:
+
+```text
+https://shop.tg11.org/webhooks/easypost/
+https://shop.tg11.org/webhooks/shippo/
+```
+
+If your provider gives a hosted webhook relay URL such as WeSupply, store that URL in `.env` as `EASYPOST_WEBHOOK_URL` for reference and put the shared secret in `EASYPOST_WEBHOOK_SECRET`. Incoming webhook payloads are recorded in `ShippingWebhookEvent`; when a payload includes an order number or a matching external shipment/rate ID plus tracking data, TG11 Shop creates a fulfillment update.
+
+Stripe Tax can be enabled with:
+
+```env
+TAX_PROVIDER=stripe_tax
+STRIPE_TAX_ENABLED=1
+STRIPE_TAX_BEHAVIOR=exclusive
+```
+
+Tax calculations run inside the central pricing engine before the Stripe Checkout Session is created. The order stores `tax_total`, `tax_snapshot`, and the complete `pricing_snapshot` for reconciliation and refunds.
+
+### Incident runbooks
+
+Carrier outage: disable real-time provider adapters, keep `ENABLE_SHIPPING_ENGINE=1`, and rely on fallback `ShippingRateRule` records.
+
+Bad coupon or sale rule: disable the `Coupon` or `Promotion` in admin, then run `reconcile_payments` and inspect affected orders by `discount_snapshot`.
+
+Wrong shipping/tax total: disable the relevant `ShippingRateRule` or promotion, create a test cart in the dashboard/admin, and compare order `pricing_snapshot` against the payment record before re-enabling.
 
 ### Fulfillment jobs
 

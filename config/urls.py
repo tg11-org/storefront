@@ -16,6 +16,7 @@ urlpatterns = [
     path('checkout/', include(('checkout.urls', 'checkout'), namespace='checkout')),
     path('orders/', include(('orders.urls', 'orders'), namespace='orders')),
     path('payments/', include(('payments.urls', 'payments'), namespace='payments')),
+    path('webhooks/', include(('pricing.urls', 'pricing'), namespace='pricing')),
     path('connectors/', include(('connectors.urls', 'connectors'), namespace='connectors')),
     path('dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),
     path('health/', healthcheck, name='healthcheck'),

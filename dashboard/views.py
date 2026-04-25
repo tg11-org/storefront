@@ -60,6 +60,10 @@ def storefront_manager(request):
         {'label': 'Manage products', 'url': reverse('admin:catalog_product_changelist'), 'description': 'Edit catalog items and mark featured products.'},
         {'label': 'Add page', 'url': reverse('dashboard:page_create'), 'description': 'Publish a page and link products to it.'},
         {'label': 'Manage pages', 'url': reverse('admin:catalog_storepage_changelist'), 'description': 'Publish landing pages, product collections, and info pages.'},
+        {'label': 'Store settings', 'url': reverse('admin:catalog_storesettings_changelist'), 'description': 'Edit brand, MOTD, support email, footer, social image, currency, and order prefix.'},
+        {'label': 'Promotions', 'url': reverse('admin:pricing_promotion_changelist'), 'description': 'Create sales, discounts, and free shipping rules.'},
+        {'label': 'Coupons', 'url': reverse('admin:pricing_coupon_changelist'), 'description': 'Manage coupon codes, limits, and stacking behavior.'},
+        {'label': 'Shipping rates', 'url': reverse('admin:pricing_shippingraterule_changelist'), 'description': 'Configure domestic, international, and fallback shipping rates.'},
         {'label': 'Add channel', 'url': reverse('dashboard:channel_create'), 'description': 'Connect an Etsy or PopCustoms account profile.'},
         {'label': 'Link listing', 'url': reverse('dashboard:listing_create'), 'description': 'Map local products and variants to vendor listing IDs.'},
     ]

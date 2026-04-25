@@ -25,6 +25,12 @@ class CartTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Cart.objects.get().items.count(), 0)
 
+    def test_add_to_cart_handles_invalid_quantity_without_500(self):
+        response = self.client.post(reverse('cart:add', args=[self.product.slug]), {'variant_id': self.variant.pk, 'quantity': 'nope'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Cart.objects.get().items.get().quantity, 1)
+
     def test_update_cart_rejects_quantity_over_stock(self):
         self.client.post(reverse('cart:add', args=[self.product.slug]), {'variant_id': self.variant.pk, 'quantity': 2})
         item = Cart.objects.get().items.get()
