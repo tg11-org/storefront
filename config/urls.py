@@ -1,7 +1,10 @@
+import re
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve as _serve_static
 
 from config.views import favicon, healthcheck
 
@@ -24,4 +27,12 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 elif getattr(settings, 'SERVE_MEDIA', False):
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Django's static() helper silently returns [] when DEBUG=False, so we
+    # build the URL pattern directly to actually serve user-uploaded media.
+    urlpatterns += [
+        re_path(
+            r'^%s(?P<path>.*)$' % re.escape(settings.MEDIA_URL.lstrip('/')),
+            _serve_static,
+            kwargs={'document_root': settings.MEDIA_ROOT},
+        )
+    ]
