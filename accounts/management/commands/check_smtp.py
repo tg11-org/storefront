@@ -4,6 +4,15 @@ from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.core.management.base import BaseCommand, CommandError
 
+from catalog.models import StoreSettings
+
+
+def get_site_name() -> str:
+    try:
+        return StoreSettings.current().name
+    except Exception:
+        return getattr(settings, 'STORE_NAME', 'TG11 Shop')
+
 
 class Command(BaseCommand):
     help = 'Validate SMTP configuration and optionally send a test email.'
@@ -50,7 +59,7 @@ class Command(BaseCommand):
             return
 
         message = EmailMessage(
-            subject='[TG11 Shop] SMTP test',
+            subject=f'[{get_site_name()}] SMTP test',
             body='This is a test email sent by manage.py check_smtp.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[to_email],

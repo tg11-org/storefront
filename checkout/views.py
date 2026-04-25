@@ -279,7 +279,10 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
                     self.request.GET.get('order'),
                     session_id,
                 )
-                site_name = StoreSettings.current().name
+                try:
+                    site_name = StoreSettings.current().name
+                except Exception:
+                    site_name = 'This storefront'
                 messages.error(self.request, f'Stripe confirmed the redirect, but {site_name} could not finish local order processing yet. The webhook can still complete the order shortly.')
                 order = self._get_order()
         context['order'] = order
