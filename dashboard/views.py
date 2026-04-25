@@ -11,7 +11,13 @@ from catalog.models import Product, StorePage
 from connectors.models import ChannelAccount, ExternalListing
 from connectors.models import SyncJob
 from orders.models import Order, FulfillmentUpdate
-from orders.services import create_fulfillment_update, mark_order_refunded, mark_order_return_requested
+from orders.services import (
+    create_fulfillment_update,
+    mark_order_refunded,
+    mark_order_return_requested,
+    send_fulfillment_notification,
+    send_order_confirmation_email,
+)
 from payments.models import PaymentRecord
 
 from .forms import (
@@ -197,7 +203,6 @@ def order_fulfill(request, order_number):
             fulfillment_update.save()
             
             # Send notification email
-            from orders.services import send_fulfillment_notification
             send_fulfillment_notification(fulfillment_update)
             
             messages.success(request, f'Order status updated to {fulfillment_update.get_status_display()}')
@@ -233,6 +238,36 @@ def order_fulfill(request, order_number):
         'fulfillment_updates': order.fulfillment_updates.all(),
     }
     return render(request, 'dashboard/order_fulfill.html', context)
+
+
+@staff_member_required
+def resend_order_confirmation(request, order_number):
+    """Resend order confirmation email from manage orders."""
+    if request.method != 'POST':
+        return redirect('dashboard:orders_manage')
+
+    order = get_object_or_404(Order, number=order_number)
+    if send_order_confirmation_email(order):
+        messages.success(request, f'Order confirmation email sent for {order.number}.')
+    else:
+        messages.error(request, f'Unable to send order confirmation email for {order.number}.')
+
+    return redirect(request.META.get('HTTP_REFERER') or 'dashboard:orders_manage')
+
+
+@staff_member_required
+def resend_fulfillment_email(request, update_id):
+    """Resend fulfillment status email for a specific update."""
+    if request.method != 'POST':
+        return redirect('dashboard:orders_manage')
+
+    fulfillment_update = get_object_or_404(FulfillmentUpdate.objects.select_related('order'), pk=update_id)
+    if send_fulfillment_notification(fulfillment_update, force_resend=True):
+        messages.success(request, f'Fulfillment email resent for {fulfillment_update.order.number}.')
+    else:
+        messages.error(request, f'Unable to resend fulfillment email for {fulfillment_update.order.number}.')
+
+    return redirect(request.META.get('HTTP_REFERER') or 'dashboard:orders_manage')
 
 
 @staff_member_required

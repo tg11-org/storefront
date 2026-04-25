@@ -157,7 +157,7 @@
   .product-image {
     border-radius: 6px;
     overflow: hidden;
-    background-color: #f5f5f5;
+    background-color: var(--surface-alt);
     aspect-ratio: 1;
   }
 
@@ -198,19 +198,23 @@
   .form-select,
   .form-input {
     padding: 0.75rem;
-    border: 1px solid var(--border-color, #ddd);
+    border: 1px solid var(--line);
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
+    background-color: var(--surface);
+    color: var(--ink);
   }
 
   .form-textarea {
     padding: 0.75rem;
-    border: 1px solid var(--border-color, #ddd);
+    border: 1px solid var(--line);
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
     resize: vertical;
+    background-color: var(--surface);
+    color: var(--ink);
   }
 
   .quantity-input-wrapper {
@@ -236,7 +240,7 @@
 
   .form-help {
     font-size: 0.875rem;
-    color: var(--text-muted, #666);
+    color: var(--muted);
     margin-top: 0.5rem;
   }
 
@@ -284,13 +288,13 @@
 
   .lead {
     font-size: 1.1rem;
-    color: var(--text-muted, #666);
+    color: var(--muted);
     margin-bottom: 1rem;
   }
 
   .prose {
     line-height: 1.6;
-    color: var(--text-primary, #333);
+    color: var(--ink);
     margin-bottom: 1rem;
   }
 

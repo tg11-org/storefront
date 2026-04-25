@@ -13,7 +13,7 @@
     {% for account in accounts %}
       <article class="mini-card">
         <strong>{{ account.name }}</strong>
-        <p>{{ account.get_provider_display }} ? {{ account.account_identifier }}</p>
+        <p>{{ account.get_provider_display }} · {{ account.account_identifier }}</p>
       </article>
     {% empty %}
       <p>No channel accounts configured yet.</p>
@@ -24,7 +24,7 @@
     {% for job in jobs %}
       <article class="mini-card">
         <strong>{{ job.action }}</strong>
-        <p>{{ job.provider }} ? {{ job.status }}</p>
+        <p>{{ job.provider }} · {{ job.status }}</p>
       </article>
     {% empty %}
       <p>No jobs have been queued yet.</p>

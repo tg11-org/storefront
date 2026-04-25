@@ -3,6 +3,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Order, FulfillmentUpdate
 
@@ -13,13 +14,13 @@ def get_order_absolute_url(order: Order) -> str:
     return f"{site_url}/orders/{order.number}/"
 
 
-def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate) -> bool:
+def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate, force_resend: bool = False) -> bool:
     """
     Send customer email notification for fulfillment status update.
     
     Returns True if email was sent successfully, False otherwise.
     """
-    if fulfillment_update.email_sent:
+    if fulfillment_update.email_sent and not force_resend:
         return True  # Already sent
     
     order = fulfillment_update.order
@@ -184,6 +185,8 @@ def send_order_confirmation_email(order: Order) -> bool:
             html_message=html_body,
             fail_silently=False,
         )
+        order.confirmation_email_sent_at = timezone.now()
+        order.save(update_fields=['confirmation_email_sent_at', 'updated_at'])
         return True
     except Exception as e:
         print(f"Failed to send order confirmation email for {order.number}: {e}")

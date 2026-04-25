@@ -11,8 +11,8 @@ Delivery Notes:
 
 Order Details:
 - Order Number: {{ order_number }}
-- Delivered to: {{ shipping_address.street }}, {{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.zip }}
-
+{% if shipping_address %}- Delivered to: {{ shipping_address.full_name }}{% if shipping_address.full_name %}, {% endif %}{{ shipping_address.line1 }}, {{ shipping_address.city }}, {{ shipping_address.state }} {{ shipping_address.postal_code }}
+{% endif %}
 Thank you for shopping with {{ site_name }}!
 
 Best regards,

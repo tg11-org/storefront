@@ -85,10 +85,11 @@
     <h2>Shipping Address</h2>
     {% if order.shipping_address %}
       <address class="address-block">
-        {{ order.shipping_address.name }}<br>
-        {{ order.shipping_address.street }}<br>
-        {% if order.shipping_address.apt %}{{ order.shipping_address.apt }}<br>{% endif %}
-        {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.zip }}<br>
+        {{ order.shipping_address.full_name }}<br>
+        {% if order.shipping_address.company_name %}{{ order.shipping_address.company_name }}<br>{% endif %}
+        {{ order.shipping_address.line1 }}<br>
+        {% if order.shipping_address.line2 %}{{ order.shipping_address.line2 }}<br>{% endif %}
+        {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.postal_code }}<br>
         {{ order.shipping_address.country }}
       </address>
     {% else %}
@@ -245,7 +246,7 @@
     display: flex;
     justify-content: space-between;
     padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-color, #eee);
+    border-bottom: 1px solid var(--line);
   }
 
   .summary-row:last-child {
@@ -274,7 +275,7 @@
 
   .divider {
     height: 1px;
-    background-color: var(--border-color, #eee);
+    background-color: var(--line);
     margin: 1rem 0;
   }
 
@@ -298,24 +299,25 @@
   .items-table td {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid var(--border-color, #eee);
+    border-bottom: 1px solid var(--line);
   }
 
   .items-table th {
-    background-color: var(--bg-secondary, #f5f5f5);
+    background-color: var(--bg-strong);
+    color: var(--muted);
     font-weight: 600;
     font-size: 0.875rem;
   }
 
   .text-muted {
-    color: var(--text-muted, #666);
+    color: var(--muted);
     font-size: 0.875rem;
   }
 
   .address-block {
     font-style: normal;
     line-height: 1.6;
-    color: var(--text-primary, #333);
+    color: var(--ink);
   }
 
   .fulfillment-timeline {
@@ -328,7 +330,7 @@
     grid-template-columns: auto 1fr;
     gap: 1rem;
     padding: 1rem 0;
-    border-left: 2px solid var(--border-color, #eee);
+    border-left: 2px solid var(--line);
     padding-left: 1rem;
     margin-left: 0.5rem;
   }
@@ -370,7 +372,7 @@
   .tracking-info {
     margin-top: 0.75rem;
     padding: 0.75rem;
-    background-color: var(--bg-secondary, #f5f5f5);
+    background-color: var(--surface-alt);
     border-radius: 4px;
   }
 
@@ -452,10 +454,12 @@
   .form-textarea,
   .form-input {
     padding: 0.5rem;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--line);
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
+    background-color: var(--surface);
+    color: var(--ink);
   }
 
   .form-textarea {
@@ -509,7 +513,7 @@
   small {
     display: block;
     margin-top: 0.25rem;
-    color: var(--text-muted, #666);
+    color: var(--muted);
     font-size: 0.8rem;
   }
 </style>

@@ -58,6 +58,7 @@
             <th>Fulfillment</th>
             <th>Source</th>
             <th>Date</th>
+            <th>Email Status</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -81,7 +82,41 @@
               <td>{{ order.get_source_display }}</td>
               <td>{{ order.placed_at|date:"M d, Y" }}</td>
               <td>
-                <a href="{% url 'dashboard:order_fulfill' order.number %}" class="button small">Manage</a>
+                <div class="email-status">
+                  {% if order.confirmation_email_sent_at %}
+                    <span class="status-chip status-sent">Confirmation: Sent</span>
+                  {% else %}
+                    <span class="status-chip status-pending">Confirmation: Pending</span>
+                  {% endif %}
+                  {% with latest_update=order.fulfillment_updates.first %}
+                    {% if latest_update %}
+                      {% if latest_update.email_sent %}
+                        <span class="status-chip status-sent">Fulfillment: Sent ({{ latest_update.get_status_display }})</span>
+                      {% else %}
+                        <span class="status-chip status-pending">Fulfillment: Pending ({{ latest_update.get_status_display }})</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="status-chip status-na">Fulfillment: N/A</span>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <a href="{% url 'dashboard:order_fulfill' order.number %}" class="button small">Manage</a>
+                  <form method="post" action="{% url 'dashboard:resend_order_confirmation' order.number %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button small secondary-action">Resend confirmation</button>
+                  </form>
+                  {% with latest_update=order.fulfillment_updates.first %}
+                    {% if latest_update %}
+                      <form method="post" action="{% url 'dashboard:resend_fulfillment_email' latest_update.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="button small secondary-action">Resend fulfillment</button>
+                      </form>
+                    {% endif %}
+                  {% endwith %}
+                </div>
               </td>
             </tr>
           {% endfor %}
@@ -246,9 +281,54 @@
     gap: 1rem;
   }
 
+  .email-status {
+    display: grid;
+    gap: 0.375rem;
+  }
+
+  .status-chip {
+    display: inline-block;
+    width: fit-content;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .status-sent {
+    background: #14532d;
+    color: #bbf7d0;
+  }
+
+  .status-pending {
+    background: #78350f;
+    color: #fde68a;
+  }
+
+  .status-na {
+    background: #334155;
+    color: #cbd5e1;
+  }
+
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .row-actions form {
+    margin: 0;
+  }
+
   .button.small {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
+  }
+
+  .button.small.secondary-action {
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+    color: var(--ink);
   }
 
   input[type="checkbox"] {

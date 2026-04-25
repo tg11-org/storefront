@@ -25,7 +25,7 @@
     {% for order in recent_orders %}
       <article class="mini-card">
         <strong>{{ order.number }}</strong>
-        <p>{{ order.get_status_display }} ? {{ order.get_source_display }}</p>
+        <p>{{ order.get_status_display }} · {{ order.get_source_display }}</p>
       </article>
     {% endfor %}
   </section>
@@ -34,7 +34,7 @@
     {% for job in recent_jobs %}
       <article class="mini-card">
         <strong>{{ job.provider }} / {{ job.action }}</strong>
-        <p>{{ job.status }} ? {{ job.target_type }} {{ job.target_id }}</p>
+        <p>{{ job.status }} · {{ job.target_type }} {{ job.target_id }}</p>
       </article>
     {% empty %}
       <p>No sync jobs yet.</p>
