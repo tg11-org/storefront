@@ -68,6 +68,12 @@
     {% for channel in channel_accounts %}
       <article class="mini-card">
         <strong>{{ channel.name }}</strong>
+        <form method="post" action="{% url 'dashboard:channel_sync' channel.id %}" class="inline-actions">
+          {% csrf_token %}
+          <button class="button small" type="submit" name="action" value="import_listings">Import</button>
+          <button class="button small" type="submit" name="action" value="push_listings">Push listings</button>
+          <button class="button small" type="submit" name="action" value="push_inventory">Push stock</button>
+        </form>
         <p>{{ channel.get_provider_display }} · {{ channel.account_identifier }}</p>
       </article>
     {% empty %}
@@ -83,6 +89,11 @@
     {% for listing in external_listings %}
       <article class="mini-card">
         <strong>{{ listing.product.name }}</strong>
+        <form method="post" action="{% url 'dashboard:listing_sync' listing.id %}" class="inline-actions">
+          {% csrf_token %}
+          <button class="button small" type="submit" name="action" value="push_listing">Push listing</button>
+          <button class="button small" type="submit" name="action" value="push_inventory">Push stock</button>
+        </form>
         <p>{{ listing.get_provider_display }} · {{ listing.external_listing_id }}</p>
       </article>
     {% empty %}

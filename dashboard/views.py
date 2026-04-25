@@ -10,6 +10,7 @@ from django.db.models import Q
 from catalog.models import Product, ProductImage, ProductVideo, StorePage
 from connectors.models import ChannelAccount, ExternalListing
 from connectors.models import SyncJob
+from connectors.services import import_channel_listings, push_external_inventory, sync_external_listing
 from orders.models import Order, FulfillmentUpdate
 from orders.services import (
     create_fulfillment_update,
@@ -163,6 +164,55 @@ def listing_create(request):
             'lead': 'Map a TG11 product or variant to the vendor IDs used when paid orders queue fulfillment jobs.',
         },
     )
+
+
+@user_passes_test(_is_superuser)
+def channel_sync(request, channel_id):
+    if request.method != 'POST':
+        return redirect('dashboard:manage')
+    channel = get_object_or_404(ChannelAccount, pk=channel_id)
+    action = request.POST.get('action')
+    try:
+        if action == 'import_listings':
+            listings = import_channel_listings(channel)
+            messages.success(request, f'Imported {len(listings)} listing(s) from {channel.name}.')
+        elif action == 'push_listings':
+            count = 0
+            for listing in ExternalListing.objects.filter(channel_account=channel).select_related('channel_account', 'product', 'variant'):
+                sync_external_listing(listing)
+                count += 1
+            messages.success(request, f'Pushed {count} listing(s) to {channel.name}.')
+        elif action == 'push_inventory':
+            count = 0
+            for listing in ExternalListing.objects.filter(channel_account=channel).select_related('channel_account', 'product', 'variant'):
+                push_external_inventory(listing)
+                count += 1
+            messages.success(request, f'Pushed inventory for {count} listing(s) to {channel.name}.')
+        else:
+            messages.error(request, 'Unknown channel sync action.')
+    except Exception as exc:
+        messages.error(request, f'{channel.name} sync failed: {exc}')
+    return redirect('dashboard:manage')
+
+
+@user_passes_test(_is_superuser)
+def listing_sync(request, listing_id):
+    if request.method != 'POST':
+        return redirect('dashboard:manage')
+    listing = get_object_or_404(ExternalListing.objects.select_related('channel_account', 'product', 'variant'), pk=listing_id)
+    action = request.POST.get('action')
+    try:
+        if action == 'push_listing':
+            sync_external_listing(listing)
+            messages.success(request, f'Pushed {listing.product.name} to {listing.channel_account.name}.')
+        elif action == 'push_inventory':
+            push_external_inventory(listing)
+            messages.success(request, f'Pushed inventory for {listing.product.name}.')
+        else:
+            messages.error(request, 'Unknown listing sync action.')
+    except Exception as exc:
+        messages.error(request, f'{listing.product.name} sync failed: {exc}')
+    return redirect('dashboard:manage')
 
 
 @staff_member_required

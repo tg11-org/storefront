@@ -225,9 +225,27 @@ systemctl reload apache2
 - `ENABLE_LIVE_SHIPPING_RATES`, `SHIPPING_RATE_PROVIDER`, `EASYPOST_API_KEY`, `SHIPPO_API_TOKEN`
 - `SHIP_FROM_NAME`, `SHIP_FROM_LINE1`, `SHIP_FROM_CITY`, `SHIP_FROM_STATE`, `SHIP_FROM_POSTAL_CODE`, `SHIP_FROM_COUNTRY`
 - `TAX_PROVIDER`, `STRIPE_TAX_ENABLED`, `STRIPE_TAX_BEHAVIOR`
-- `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_API_HEADER`
+- `POPCUSTOMS_API_KEY`, `POPCUSTOMS_ORDERS_ENDPOINT`, `POPCUSTOMS_LISTINGS_ENDPOINT`, `POPCUSTOMS_INVENTORY_ENDPOINT`, `POPCUSTOMS_API_HEADER`
 - `ETSY_API_KEY`, `ETSY_SHARED_SECRET`
 - `FULFILLMENT_EMAIL_RECIPIENTS`
+
+## Vendor listing sync
+
+Import remote listings into local products:
+
+```bash
+python manage.py sync_channel --provider etsy --import-listings
+python manage.py sync_channel --provider popcustoms --import-listings
+```
+
+Push local listing links and stock counts back to the vendor:
+
+```bash
+python manage.py sync_channel --provider etsy --push-listings --push-inventory
+python manage.py sync_channel --provider popcustoms --push-listings --push-inventory
+```
+
+Etsy listing sync requires the channel account to have an OAuth access token with listing scopes, plus config JSON values for `taxonomy_id` and `shipping_profile_id`. PopCustoms listing sync uses the configurable `POPCUSTOMS_LISTINGS_ENDPOINT` and optional `POPCUSTOMS_INVENTORY_ENDPOINT` because the order webhook endpoint is separate from catalog management.
 
 ## Stripe integration
 

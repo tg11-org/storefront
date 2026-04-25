@@ -9,7 +9,7 @@ from orders.models import Order, OrderItem
 from .models import ChannelAccount, ExternalListing, SyncJob
 from .etsy import EtsyConnector
 from .popcustoms import PopCustomsConnector
-from .services import process_pending_fulfillment_jobs, queue_external_fulfillment_for_order
+from .services import import_channel_listings, process_pending_fulfillment_jobs, queue_external_fulfillment_for_order
 
 
 class ExternalFulfillmentQueueTests(TestCase):
@@ -124,3 +124,115 @@ class EtsyConnectorTests(TestCase):
 
         self.assertEqual(connector.shop_id, '67890')
         self.assertEqual(connector._headers()['x-api-key'], 'override-key:override-secret')
+
+    @override_settings(
+        POPCUSTOMS_API_KEY='test-pop-key',
+        POPCUSTOMS_LISTINGS_ENDPOINT='https://i.popcustoms.test/stores/27713/listings',
+        POPCUSTOMS_API_HEADER='X-API-Key',
+    )
+    @patch('connectors.popcustoms.requests.request')
+    def test_popcustoms_upsert_listing_posts_catalog_payload(self, mock_request):
+        product = Product.objects.create(name='Pop Tee', slug='pop-tee', default_source=Product.Source.POPCUSTOMS, description='Soft tee')
+        variant = ProductVariant.objects.create(product=product, title='Default', sku='TEE-001', price='28.00', stock_quantity=7, is_default=True)
+        channel = ChannelAccount.objects.create(provider=ChannelAccount.Provider.POPCUSTOMS, name='PopCustoms', account_identifier='TG11')
+        listing = ExternalListing.objects.create(provider=ChannelAccount.Provider.POPCUSTOMS, channel_account=channel, product=product, variant=variant, external_listing_id='')
+        mock_response = Mock()
+        mock_response.content = b'{}'
+        mock_response.json.return_value = {'id': 'pop-listing-1', 'product_id': 'pop-product-1', 'url': 'https://pop.example/listing'}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        result = PopCustomsConnector(channel).upsert_listing(listing)
+
+        self.assertEqual(result['status'], 'synced')
+        method, url = mock_request.call_args.args[:2]
+        self.assertEqual(method, 'post')
+        self.assertEqual(url, 'https://i.popcustoms.test/stores/27713/listings')
+        self.assertEqual(mock_request.call_args.kwargs['json']['sku'], 'TEE-001')
+        listing.refresh_from_db()
+        self.assertEqual(listing.external_listing_id, 'pop-listing-1')
+        self.assertEqual(listing.sync_state, ExternalListing.SyncState.SYNCED)
+
+    @override_settings(
+        POPCUSTOMS_API_KEY='test-pop-key',
+        POPCUSTOMS_LISTINGS_ENDPOINT='https://i.popcustoms.test/stores/27713/listings',
+    )
+    @patch('connectors.popcustoms.requests.request')
+    def test_popcustoms_imports_remote_listing_to_product(self, mock_request):
+        channel = ChannelAccount.objects.create(provider=ChannelAccount.Provider.POPCUSTOMS, name='PopCustoms', account_identifier='TG11')
+        mock_response = Mock()
+        mock_response.content = b'{}'
+        mock_response.json.return_value = {
+            'listings': [
+                {'id': 'remote-1', 'title': 'Remote Mug', 'description': 'Imported mug', 'sku': 'REMOTE-MUG', 'price': '19.50', 'quantity': 4, 'url': 'https://pop.example/remote-1'}
+            ]
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        listings = import_channel_listings(channel)
+
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].product.name, 'Remote Mug')
+        self.assertEqual(listings[0].variant.sku, 'REMOTE-MUG')
+        self.assertEqual(listings[0].variant.stock_quantity, 4)
+
+    @override_settings(ETSY_API_KEY='etsy-key', ETSY_SHARED_SECRET='etsy-secret')
+    @patch('connectors.etsy.requests.request')
+    def test_etsy_upsert_listing_creates_draft_and_pushes_inventory(self, mock_request):
+        product = Product.objects.create(name='Etsy Candle', slug='etsy-candle', default_source=Product.Source.ETSY, description='Soy candle')
+        variant = ProductVariant.objects.create(product=product, title='Default', sku='CANDLE-001', price='12.00', stock_quantity=5, is_default=True)
+        channel = ChannelAccount.objects.create(
+            provider=ChannelAccount.Provider.ETSY,
+            name='Etsy TG11',
+            account_identifier='12345',
+            access_token='token-value',
+            config={'taxonomy_id': '1', 'shipping_profile_id': '2', 'readiness_state_id': '3'},
+        )
+        listing = ExternalListing.objects.create(provider=ChannelAccount.Provider.ETSY, channel_account=channel, product=product, variant=variant, external_listing_id='')
+        create_response = Mock()
+        create_response.content = b'{}'
+        create_response.json.return_value = {'listing_id': 98765, 'url': 'https://etsy.example/listing/98765'}
+        create_response.raise_for_status.return_value = None
+        inventory_response = Mock()
+        inventory_response.content = b'{}'
+        inventory_response.json.return_value = {'ok': True}
+        inventory_response.raise_for_status.return_value = None
+        mock_request.side_effect = [create_response, inventory_response]
+
+        result = EtsyConnector(channel).upsert_listing(listing)
+
+        self.assertEqual(result['status'], 'synced')
+        self.assertEqual(mock_request.call_args_list[0].args[0], 'post')
+        self.assertIn('/shops/12345/listings', mock_request.call_args_list[0].args[1])
+        self.assertEqual(mock_request.call_args_list[0].kwargs['data']['sku'], 'CANDLE-001')
+        self.assertEqual(mock_request.call_args_list[1].args[0], 'put')
+        self.assertIn('/listings/98765/inventory', mock_request.call_args_list[1].args[1])
+        listing.refresh_from_db()
+        self.assertEqual(listing.external_listing_id, '98765')
+
+    @override_settings(ETSY_API_KEY='etsy-key', ETSY_SHARED_SECRET='etsy-secret')
+    @patch('connectors.etsy.requests.request')
+    def test_etsy_imports_shop_listing_to_product(self, mock_request):
+        channel = ChannelAccount.objects.create(
+            provider=ChannelAccount.Provider.ETSY,
+            name='Etsy TG11',
+            account_identifier='12345',
+            access_token='token-value',
+        )
+        mock_response = Mock()
+        mock_response.content = b'{}'
+        mock_response.json.return_value = {
+            'results': [
+                {'listing_id': 456, 'title': 'Etsy Dice', 'description': 'Sharp resin dice', 'sku': 'DICE-001', 'price': {'amount': '35.00'}, 'quantity': 2, 'url': 'https://etsy.example/listing/456'}
+            ]
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        listings = import_channel_listings(channel)
+
+        self.assertEqual(len(listings), 1)
+        self.assertEqual(listings[0].external_listing_id, '456')
+        self.assertEqual(listings[0].product.default_source, Product.Source.ETSY)
+        self.assertEqual(listings[0].variant.price, listings[0].variant.price.__class__('35.00'))

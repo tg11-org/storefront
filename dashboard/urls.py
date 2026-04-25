@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     channel_create, dashboard_home, listing_create, page_create, product_create,
     storefront_manager, orders_manage, order_fulfill, orders_bulk_action,
+    channel_sync, listing_sync,
     resend_order_confirmation, resend_fulfillment_email,
 )
 
@@ -14,7 +15,9 @@ urlpatterns = [
     path('manage/products/new/', product_create, name='product_create'),
     path('manage/pages/new/', page_create, name='page_create'),
     path('manage/channels/new/', channel_create, name='channel_create'),
+    path('manage/channels/<int:channel_id>/sync/', channel_sync, name='channel_sync'),
     path('manage/listings/new/', listing_create, name='listing_create'),
+    path('manage/listings/<int:listing_id>/sync/', listing_sync, name='listing_sync'),
     path('manage/orders/', orders_manage, name='orders_manage'),
     path('manage/orders/<str:order_number>/', order_fulfill, name='order_fulfill'),
     path('manage/orders/<str:order_number>/resend-confirmation/', resend_order_confirmation, name='resend_order_confirmation'),
