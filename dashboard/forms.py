@@ -12,6 +12,15 @@ from orders.models import FulfillmentUpdate, Order
 
 
 class ProductCreateForm(forms.ModelForm):
+    image_1 = forms.ImageField(required=False, label='Image 1')
+    image_2 = forms.ImageField(required=False, label='Image 2')
+    image_3 = forms.ImageField(required=False, label='Image 3')
+    image_4 = forms.ImageField(required=False, label='Image 4')
+    image_5 = forms.ImageField(required=False, label='Image 5')
+    video_file = forms.FileField(required=False, label='Product video')
+    video_thumbnail = forms.ImageField(required=False, label='Video thumbnail')
+    video_title = forms.CharField(required=False, label='Video title', max_length=255)
+
     class Meta:
         model = Product
         fields = (
@@ -32,11 +41,28 @@ class ProductCreateForm(forms.ModelForm):
             'custom_request_help_text': forms.TextInput(attrs={'placeholder': 'Example: color palette, size notes, gift message'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ['image_1', 'image_2', 'image_3', 'image_4', 'image_5']:
+            self.fields[field_name].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
+        self.fields['video_file'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'video/mp4,video/webm,video/ogg'})
+        self.fields['video_thumbnail'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
+        self.fields['video_title'].widget = forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Optional video title'})
+        self.fields['video_file'].help_text = 'Optional: upload one MP4, WebM, or Ogg product video.'
+
     def clean_slug(self):
         slug = self.cleaned_data.get('slug') or slugify(self.cleaned_data.get('name', ''))
         if Product.objects.filter(slug=slug).exists():
             raise ValidationError('A product with this slug already exists.')
         return slug
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('video_thumbnail') and not cleaned.get('video_file'):
+            self.add_error('video_thumbnail', 'Upload a video before adding a thumbnail.')
+        if cleaned.get('video_title') and not cleaned.get('video_file'):
+            self.add_error('video_title', 'Upload a video before adding a title.')
+        return cleaned
 
 
 class DefaultVariantForm(forms.ModelForm):
@@ -48,10 +74,11 @@ class DefaultVariantForm(forms.ModelForm):
 class StorePageCreateForm(forms.ModelForm):
     class Meta:
         model = StorePage
-        fields = ('title', 'slug', 'summary', 'body', 'products', 'is_published', 'sort_order')
+        fields = ('title', 'slug', 'summary', 'hero_image', 'body', 'products', 'is_published', 'sort_order')
         widgets = {
             'body': forms.Textarea(attrs={'rows': 7}),
             'products': forms.SelectMultiple(attrs={'size': 8}),
+            'hero_image': forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'}),
         }
 
     def clean_slug(self):

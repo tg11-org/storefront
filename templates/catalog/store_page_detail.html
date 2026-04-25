@@ -1,13 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}{{ object.title }} | TG11 Shop{% endblock %}
 {% block content %}
-<section class="section-header">
-  <div>
-    <p class="eyebrow">TG11 page</p>
-    <h1>{{ object.title }}</h1>
-    {% if object.summary %}<p class="lead">{{ object.summary }}</p>{% endif %}
-  </div>
-</section>
+{% if object.hero_image %}
+  <section class="page-hero" style="background-image: linear-gradient(rgba(20, 24, 31, 0.45), rgba(20, 24, 31, 0.45)), url('{{ object.hero_image.url }}');">
+    <div class="page-hero-copy">
+      <p class="eyebrow">TG11 page</p>
+      <h1>{{ object.title }}</h1>
+      {% if object.summary %}<p class="lead">{{ object.summary }}</p>{% endif %}
+    </div>
+  </section>
+{% else %}
+  <section class="section-header">
+    <div>
+      <p class="eyebrow">TG11 page</p>
+      <h1>{{ object.title }}</h1>
+      {% if object.summary %}<p class="lead">{{ object.summary }}</p>{% endif %}
+    </div>
+  </section>
+{% endif %}
 {% if object.body %}
   <article class="detail-card prose">{{ object.body|linebreaks }}</article>
 {% endif %}
@@ -29,4 +39,32 @@
     {% endfor %}
   </div>
 {% endif %}
+<style>
+  .page-hero {
+    min-height: 300px;
+    border-radius: 28px;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: end;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+  }
+
+  .page-hero-copy {
+    max-width: 720px;
+    color: #fff;
+  }
+
+  .page-hero-copy .eyebrow,
+  .page-hero-copy .lead,
+  .page-hero-copy h1 {
+    color: #fff;
+  }
+
+  .page-hero-copy .lead {
+    opacity: 0.92;
+  }
+</style>
 {% endblock %}

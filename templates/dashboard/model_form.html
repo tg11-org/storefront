@@ -10,7 +10,7 @@
   <a class="button" href="{% url 'dashboard:manage' %}">Back to dashboard</a>
 </section>
 
-<form method="post" class="detail-card dashboard-form">
+<form method="post" enctype="multipart/form-data" class="detail-card dashboard-form">
   {% csrf_token %}
   {% if form.non_field_errors %}<div class="error-list">{{ form.non_field_errors }}</div>{% endif %}
   <div class="form-grid">

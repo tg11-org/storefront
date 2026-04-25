@@ -139,6 +139,7 @@ class StorePage(models.Model):
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=255)
     summary = models.CharField(max_length=255, blank=True)
+    hero_image = models.ImageField(upload_to='pages/heroes/', blank=True)
     body = models.TextField(blank=True)
     products = models.ManyToManyField(Product, blank=True, related_name='store_pages')
     is_published = models.BooleanField(default=False)

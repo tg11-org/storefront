@@ -10,22 +10,24 @@
   <a class="button" href="{% url 'dashboard:manage' %}">Back to dashboard</a>
 </section>
 
-<form method="post" class="dashboard-grid">
+<form method="post" enctype="multipart/form-data" class="dashboard-grid">
   {% csrf_token %}
   <section class="detail-card dashboard-form">
     <h2>Product</h2>
     {% if product_form.non_field_errors %}<div class="error-list">{{ product_form.non_field_errors }}</div>{% endif %}
     <div class="form-grid">
       {% for field in product_form %}
-        <label class="{% if field.field.widget.input_type == 'checkbox' %}checkbox-row{% else %}field-block{% endif %}">
-          {% if field.field.widget.input_type == 'checkbox' %}
-            {{ field }} <span>{{ field.label }}</span>
-          {% else %}
-            <span>{{ field.label }}</span>
-            {{ field }}
-          {% endif %}
-          {% if field.errors %}<span class="error-list">{{ field.errors }}</span>{% endif %}
-        </label>
+        {% if field.name != 'image_1' and field.name != 'image_2' and field.name != 'image_3' and field.name != 'image_4' and field.name != 'image_5' and field.name != 'video_file' and field.name != 'video_thumbnail' and field.name != 'video_title' %}
+          <label class="{% if field.field.widget.input_type == 'checkbox' %}checkbox-row{% else %}field-block{% endif %}">
+            {% if field.field.widget.input_type == 'checkbox' %}
+              {{ field }} <span>{{ field.label }}</span>
+            {% else %}
+              <span>{{ field.label }}</span>
+              {{ field }}
+            {% endif %}
+            {% if field.errors %}<span class="error-list">{{ field.errors }}</span>{% endif %}
+          </label>
+        {% endif %}
       {% endfor %}
     </div>
   </section>
@@ -49,6 +51,23 @@
     <div class="cart-actions">
       <button class="button primary" type="submit">Create product</button>
       <a class="button" href="{% url 'dashboard:manage' %}">Cancel</a>
+    </div>
+  </section>
+
+  <section class="detail-card dashboard-form">
+    <h2>Product media</h2>
+    <p class="text-muted">Upload up to 5 product images and 1 optional video.</p>
+    <div class="form-grid">
+      {% for field in product_form %}
+        {% if field.name == 'image_1' or field.name == 'image_2' or field.name == 'image_3' or field.name == 'image_4' or field.name == 'image_5' or field.name == 'video_file' or field.name == 'video_thumbnail' or field.name == 'video_title' %}
+          <label class="field-block">
+            <span>{{ field.label }}</span>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<span class="error-list">{{ field.errors }}</span>{% endif %}
+          </label>
+        {% endif %}
+      {% endfor %}
     </div>
   </section>
 </form>

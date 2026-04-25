@@ -7,7 +7,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.db.models import Q
 
-from catalog.models import Product, StorePage
+from catalog.models import Product, ProductImage, ProductVideo, StorePage
 from connectors.models import ChannelAccount, ExternalListing
 from connectors.models import SyncJob
 from orders.models import Order, FulfillmentUpdate
@@ -76,7 +76,7 @@ def storefront_manager(request):
 
 @user_passes_test(_is_superuser)
 def product_create(request):
-    product_form = ProductCreateForm(request.POST or None, prefix='product')
+    product_form = ProductCreateForm(request.POST or None, request.FILES or None, prefix='product')
     variant_form = DefaultVariantForm(request.POST or None, prefix='variant', initial={'title': 'Default', 'is_active': True})
     if request.method == 'POST' and product_form.is_valid() and variant_form.is_valid():
         product = product_form.save()
@@ -84,6 +84,26 @@ def product_create(request):
         variant.product = product
         variant.is_default = True
         variant.save()
+
+        for index, field_name in enumerate(['image_1', 'image_2', 'image_3', 'image_4', 'image_5']):
+            image_file = product_form.cleaned_data.get(field_name)
+            if image_file:
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_file,
+                    sort_order=index,
+                    alt_text=product.name,
+                )
+
+        video_file = product_form.cleaned_data.get('video_file')
+        if video_file:
+            ProductVideo.objects.create(
+                product=product,
+                video=video_file,
+                thumbnail=product_form.cleaned_data.get('video_thumbnail'),
+                title=product_form.cleaned_data.get('video_title') or f'{product.name} video',
+            )
+
         messages.success(request, f'{product.name} was created.')
         return redirect(product.get_absolute_url())
     return render(
@@ -95,7 +115,7 @@ def product_create(request):
 
 @user_passes_test(_is_superuser)
 def page_create(request):
-    form = StorePageCreateForm(request.POST or None)
+    form = StorePageCreateForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         page = form.save()
         messages.success(request, f'{page.title} was created.')

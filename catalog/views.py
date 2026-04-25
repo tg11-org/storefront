@@ -1,3 +1,4 @@
+from typing import cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
@@ -66,12 +67,12 @@ class ProductDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        product = self.object
+        product = cast(Product, self.get_object())
 
         raw_description = product.short_description or strip_tags(product.description)
         description = Truncator(raw_description).chars(180)
 
-        image_obj = product.images.first()
+        image_obj = getattr(product, 'images').first()
         image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
         product_url = self.request.build_absolute_uri(product.get_absolute_url())
 
@@ -98,15 +99,18 @@ class StorePageDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        page = self.object
+        page = cast(StorePage, self.get_object())
 
         description_source = page.summary or strip_tags(page.body)
         description = Truncator(description_source).chars(180)
 
-        # Reuse first linked product image as preview image when available.
-        first_product = page.products.filter(is_active=True).prefetch_related('images').first()
-        image_obj = first_product.images.first() if first_product else None
-        image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
+        # Prefer the page hero image; otherwise reuse first linked product image.
+        if page.hero_image:
+            image_url = _absolute_uri(self.request, page.hero_image.url)
+        else:
+            first_product = page.products.filter(is_active=True).prefetch_related('images').first()
+            image_obj = getattr(first_product, 'images').first() if first_product else None
+            image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
 
         context['meta_title'] = f'{page.title} | TG11 Shop'
         context['meta_description'] = description
@@ -139,7 +143,7 @@ class ProductOEmbedView(View):
         if not product:
             return HttpResponseBadRequest('Product not found for URL.')
 
-        image_obj = product.images.first()
+        image_obj = getattr(product, 'images').first()
         thumbnail_url = _absolute_uri(request, image_obj.image.url if image_obj else '')
         product_url = request.build_absolute_uri(product.get_absolute_url())
         description = Truncator(product.short_description or strip_tags(product.description)).chars(180)
