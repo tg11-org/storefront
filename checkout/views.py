@@ -66,6 +66,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
         billing_address = self._resolve_billing_address(form, shipping_address, save_new=not preview_only)
         if self.request.POST.get('confirm_checkout') != '1':
             quotes = quote_shipping_methods(shipping_address.as_dict(), self.cart)
+            if not quotes:
+                form.add_error(None, 'No shipping methods are available for that address yet. Check shipping settings or try again shortly.')
+                return self.form_invalid(form)
             self._store_quote_preview(shipping_address.as_dict(), quotes)
             context = self.get_context_data(form=form)
             context['shipping_quotes'] = quotes
@@ -75,7 +78,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
         try:
             order = self._build_order(form, shipping_address, billing_address)
         except ValueError:
-            return self.form_invalid(form)
+            return self._form_invalid_with_quote_preview(form)
         try:
             session = create_checkout_session(
                 order,
@@ -86,8 +89,17 @@ class CheckoutView(LoginRequiredMixin, FormView):
             order.status = Order.Status.FAILED
             order.save(update_fields=['status', 'updated_at'])
             form.add_error(None, str(exc))
-            return self.form_invalid(form)
+            return self._form_invalid_with_quote_preview(form)
         return redirect(session.url, permanent=False)
+
+    def _form_invalid_with_quote_preview(self, form):
+        context = self.get_context_data(form=form)
+        quote_preview = self.request.session.get('checkout_quote_preview') or {}
+        if quote_preview.get('quotes'):
+            context['shipping_quotes'] = [shipping_quote_from_snapshot(quote) for quote in quote_preview['quotes']]
+            context['quote_preview_ready'] = True
+            context['shipping_signature'] = quote_preview.get('signature', '')
+        return self.render_to_response(context)
 
     def _cart_address_signature(self, shipping_address: dict) -> str:
         cart_bits = [

@@ -25,7 +25,7 @@ class CheckoutForm(forms.Form):
     billing_postal_code = forms.CharField(max_length=32, required=False)
     billing_country = forms.CharField(max_length=2, initial='US', required=False)
     coupon_code = forms.CharField(max_length=48, required=False)
-    shipping_rate_rule = forms.CharField(max_length=32, required=False)
+    shipping_rate_rule = forms.CharField(max_length=255, required=False)
     notes = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
 
     def __init__(self, user, *args, **kwargs):

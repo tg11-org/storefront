@@ -9,6 +9,7 @@ from accounts.models import Address
 from catalog.models import Product, ProductVariant
 from cart.models import Cart
 from orders.models import Order
+from pricing.services import ShippingQuote
 from pricing.models import ShippingMethod, ShippingRateRule, ShippingZone
 
 
@@ -48,6 +49,39 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
         self.assertEqual(order.items.get().sku, 'TEE-001')
         self.assertEqual(order.items.get().custom_request, 'Make it extra soft')
+
+    @patch('checkout.views.create_checkout_session')
+    @patch('checkout.views.quote_shipping_methods')
+    def test_checkout_accepts_long_live_shipping_quote_id(self, mock_quote_shipping_methods, mock_create_checkout_session):
+        quote = ShippingQuote(
+            quote_id='easypost:rate_1234567890abcdefghijklmnopqrstuvwxyz',
+            method_id=None,
+            method_name='Priority',
+            carrier='USPS',
+            amount=Decimal('7.42'),
+            estimated_min_days=2,
+            estimated_max_days=2,
+            rule_id=None,
+            provider='easypost',
+            external_rate_id='rate_1234567890abcdefghijklmnopqrstuvwxyz',
+            external_shipment_id='shp_123',
+        )
+        mock_quote_shipping_methods.return_value = [quote]
+        mock_create_checkout_session.return_value.url = 'https://checkout.stripe.test/session'
+
+        preview_response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+        self.assertEqual(preview_response.status_code, 200)
+        response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True, 'shipping_rate_rule': quote.quote_id, 'confirm_checkout': '1'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Order.objects.get().shipping_rate_snapshot['quote_id'], quote.quote_id)
+
+    @patch('checkout.views.quote_shipping_methods', return_value=[])
+    def test_checkout_shows_error_when_no_shipping_quotes_exist(self, mock_quote_shipping_methods):
+        response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No shipping methods are available')
 
     @patch('checkout.views.finalize_order_from_checkout_session')
     def test_success_page_handles_finalize_failure(self, mock_finalize_order):
