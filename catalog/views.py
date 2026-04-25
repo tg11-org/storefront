@@ -96,6 +96,26 @@ class StorePageDetailView(DetailView):
     def get_queryset(self):
         return StorePage.objects.filter(is_published=True).prefetch_related('products__variants', 'products__images')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        page = self.object
+
+        description_source = page.summary or strip_tags(page.body)
+        description = Truncator(description_source).chars(180)
+
+        # Reuse first linked product image as preview image when available.
+        first_product = page.products.filter(is_active=True).prefetch_related('images').first()
+        image_obj = first_product.images.first() if first_product else None
+        image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
+
+        context['meta_title'] = f'{page.title} | TG11 Shop'
+        context['meta_description'] = description
+        context['meta_url'] = self.request.build_absolute_uri(page.get_absolute_url())
+        context['meta_image'] = image_url
+        context['meta_type'] = 'article'
+        context['twitter_card'] = 'summary_large_image' if image_url else 'summary'
+        return context
+
 
 class ProductOEmbedView(View):
     """Serve oEmbed JSON for TG11 product pages."""
