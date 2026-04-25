@@ -57,6 +57,23 @@ class ProductListView(ListView):
         return context
 
 
+class StorePageListView(ListView):
+    model = StorePage
+    template_name = 'catalog/page_list.html'
+
+    def get_queryset(self):
+        return StorePage.objects.filter(is_published=True).prefetch_related('products')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['meta_title'] = 'Pages | TG11 Shop'
+        context['meta_description'] = 'Browse curated pages and collections from TG11 Shop.'
+        context['meta_url'] = self.request.build_absolute_uri()
+        context['meta_type'] = 'website'
+        context['twitter_card'] = 'summary'
+        return context
+
+
 class ProductDetailView(DetailView):
     model = Product
     slug_field = 'slug'
