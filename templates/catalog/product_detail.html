@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}{{ object.name }} | TG11 Shop{% endblock %}
+{% block extra_head %}
+  {% if oembed_url %}
+    <link rel="alternate" type="application/json+oembed" href="{{ oembed_url }}" title="{{ object.name }}">
+  {% endif %}
+{% endblock %}
 {% block content %}
 <section class="detail-grid">
   <article class="detail-media">
