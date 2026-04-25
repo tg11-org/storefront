@@ -86,6 +86,14 @@ class ShippingQuoteTests(TestCase):
         self.assertEqual(totals.shipping_total, Decimal('6.95'))
         self.assertEqual(totals.grand_total, Decimal('66.95'))
 
+    def test_emergency_fallback_returns_quote_when_no_rules_match(self):
+        ShippingRateRule.objects.all().delete()
+
+        quotes = quote_shipping_methods({'country': 'US'}, self.cart)
+
+        self.assertEqual(quotes[0].quote_id, 'emergency:domestic')
+        self.assertEqual(quotes[0].amount, Decimal('6.95'))
+
 
 class LiveShippingAdapterTests(TestCase):
     @override_settings(EASYPOST_API_KEY='ez_test_key', EASYPOST_API_URL='https://api.easypost.test', STRIPE_CURRENCY='usd')

@@ -131,6 +131,24 @@ def _csv_values(value: str) -> set[str]:
     return {item.strip().upper() for item in value.split(',') if item.strip()}
 
 
+def _emergency_shipping_quote(country: str) -> ShippingQuote:
+    is_domestic = country == 'US'
+    amount = settings.EMERGENCY_DOMESTIC_SHIPPING_AMOUNT if is_domestic else settings.EMERGENCY_INTERNATIONAL_SHIPPING_AMOUNT
+    return ShippingQuote(
+        quote_id=f'emergency:{"domestic" if is_domestic else "international"}',
+        method_id=None,
+        method_name='Standard' if is_domestic else 'International Standard',
+        carrier='custom',
+        amount=money(amount),
+        estimated_min_days=3 if is_domestic else 7,
+        estimated_max_days=7 if is_domestic else 21,
+        rule_id=None,
+        fallback=True,
+        provider='emergency',
+        messages=('Generated fallback rate because no configured shipping rates matched.',),
+    )
+
+
 def _active_time_window(queryset):
     now = timezone.now()
     return queryset.filter(active=True).filter(
@@ -283,6 +301,9 @@ def quote_shipping_methods(destination: dict | None, cart_or_order, subtotal: De
             )
         )
     logger.info('shipping_quotes_resolved', extra={'country': country, 'quote_count': len(quotes), 'subtotal': str(subtotal), 'weight_oz': str(weight)})
+    if not quotes and getattr(settings, 'ENABLE_SHIPPING_FALLBACK_RATES', True) and getattr(settings, 'ENABLE_EMERGENCY_SHIPPING_FALLBACK', True):
+        quotes.append(_emergency_shipping_quote(country))
+        logger.warning('shipping_emergency_fallback_used', extra={'country': country, 'subtotal': str(subtotal), 'weight_oz': str(weight)})
     return quotes
 
 
