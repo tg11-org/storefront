@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}TG11 Shop | Home{% endblock %}
+{% block title %}{{ store_settings.name|default:"TG11 Shop" }} | Home{% endblock %}
 {% block content %}
 <section class="hero-panel">
   <div>
-    <p class="eyebrow">TG11 Shop</p>
-    <h1>Quality goods, shipped with care.</h1>
-    <p class="lead">Browse our catalog and find something you'll love. Secure checkout, fast shipping, and real order tracking every step of the way.</p>
+    <p class="eyebrow">{{ store_settings.name|default:"TG11 Shop" }}</p>
+    <h1>{{ store_settings.tagline|default:"Quality goods, shipped with care." }}</h1>
+    <p class="lead">{{ store_settings.motd|default:"Browse our catalog and find something you'll love. Secure checkout, fast shipping, and real order tracking every step of the way." }}</p>
     <div class="cta-row">
       <a class="button primary" href="{% url 'catalog:product_list' %}">Shop now</a>
       <a class="button" href="{% url 'accounts:dashboard' %}">My account</a>

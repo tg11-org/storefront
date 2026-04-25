@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from accounts.models import CustomerProfile
 from cart.models import Cart
-from catalog.models import ProductVariant
+from catalog.models import ProductVariant, StoreSettings
 from connectors.services import queue_external_fulfillment_for_order
 from orders.models import Order
 from orders.services import send_order_confirmation_email
@@ -177,6 +177,13 @@ def _format_address(address: dict) -> str:
     return '\n'.join(line for line in lines if line)
 
 
+def _site_name() -> str:
+    try:
+        return StoreSettings.current().name
+    except Exception:
+        return 'TG11 Shop'
+
+
 def _internal_order_items(order: Order):
     return [
         item for item in order.items.select_related('variant')
@@ -212,7 +219,7 @@ def send_internal_fulfillment_email(order: Order) -> None:
         f'Notes:\n{order.notes or "None"}\n'
     )
     send_mail(
-        subject=f'TG11 Shop order to fulfill: {order.number}',
+        subject=f'{_site_name()} order to fulfill: {order.number}',
         message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=settings.FULFILLMENT_EMAIL_RECIPIENTS,

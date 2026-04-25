@@ -11,6 +11,7 @@ from django.views.generic import FormView, TemplateView
 
 from accounts.models import Address
 from cart.views import get_or_create_cart
+from catalog.models import StoreSettings
 from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
 from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
@@ -278,7 +279,8 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
                     self.request.GET.get('order'),
                     session_id,
                 )
-                messages.error(self.request, 'Stripe confirmed the redirect, but TG11 Shop could not finish local order processing yet. The webhook can still complete the order shortly.')
+                site_name = StoreSettings.current().name
+                messages.error(self.request, f'Stripe confirmed the redirect, but {site_name} could not finish local order processing yet. The webhook can still complete the order shortly.')
                 order = self._get_order()
         context['order'] = order
         return context

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
+from catalog.models import StoreSettings
 from .models import Order, FulfillmentUpdate
 
 
@@ -12,6 +13,13 @@ def get_order_absolute_url(order: Order) -> str:
     """Get absolute URL for an order."""
     site_url = getattr(settings, 'SITE_URL', 'https://shop.tg11.org').rstrip('/')
     return f"{site_url}/orders/{order.number}/"
+
+
+def get_site_name() -> str:
+    try:
+        return StoreSettings.current().name
+    except Exception:
+        return 'TG11 Shop'
 
 
 def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate, force_resend: bool = False) -> bool:
@@ -55,7 +63,7 @@ def send_fulfillment_notification(fulfillment_update: FulfillmentUpdate, force_r
         'order': order,
         'order_url': get_order_absolute_url(order),
         'shipping_address': shipping,
-        'site_name': 'TG11 Shop',
+        'site_name': get_site_name(),
     }
     
     # Render email subject and body
@@ -165,7 +173,7 @@ def send_order_confirmation_email(order: Order) -> bool:
         'order': order,
         'order_url': get_order_absolute_url(order),
         'shipping_address': shipping,
-        'site_name': 'TG11 Shop',
+        'site_name': get_site_name(),
     }
 
     try:

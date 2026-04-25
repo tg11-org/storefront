@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %}Log In | TG11 Shop{% endblock %}
+{% block title %}Log In | {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
 {% block content %}
 <section class="auth-card">
   <p class="eyebrow">Welcome back</p>

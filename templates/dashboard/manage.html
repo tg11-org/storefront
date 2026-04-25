@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Manage Storefront | TG11 Shop{% endblock %}
+{% block title %}Manage Storefront | {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
 {% block content %}
 <section class="section-header">
   <div>

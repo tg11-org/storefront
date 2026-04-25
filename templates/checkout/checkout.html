@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Checkout | TG11 Shop{% endblock %}
+{% block title %}Checkout | {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
 {% block content %}
 <section class="section-header">
   <div>

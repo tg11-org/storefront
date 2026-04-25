@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Confirm Email | TG11 Shop{% endblock %}
+{% block title %}Confirm Email | {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
 {% block content %}
 <section class="auth-card">
   <p class="eyebrow">Confirm email</p>

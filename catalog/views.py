@@ -9,11 +9,15 @@ from django.utils.text import Truncator
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
-from .models import Product, StorePage
+from .models import Product, StorePage, StoreSettings
 
 
 def _site_url() -> str:
     return getattr(settings, 'SITE_URL', 'https://shop.tg11.org').rstrip('/')
+
+
+def _store_settings() -> StoreSettings:
+    return StoreSettings.current()
 
 
 def _absolute_uri(request, value: str | None) -> str:
@@ -29,10 +33,11 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        store = _store_settings()
         context['featured_products'] = Product.objects.filter(is_active=True, is_featured=True)[:6]
         context['latest_products'] = Product.objects.filter(is_active=True)[:8]
-        context['meta_title'] = 'TG11 Shop'
-        context['meta_description'] = 'Quality goods, secure checkout, and fast fulfillment from TG11 Shop.'
+        context['meta_title'] = store.name
+        context['meta_description'] = store.tagline
         context['meta_url'] = self.request.build_absolute_uri()
         context['meta_type'] = 'website'
         context['twitter_card'] = 'summary'
@@ -49,8 +54,9 @@ class ProductListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['meta_title'] = 'Products | TG11 Shop'
-        context['meta_description'] = 'Browse products available now at TG11 Shop.'
+        store = _store_settings()
+        context['meta_title'] = f'Products | {store.name}'
+        context['meta_description'] = f'Browse products available now at {store.name}.'
         context['meta_url'] = self.request.build_absolute_uri()
         context['meta_type'] = 'website'
         context['twitter_card'] = 'summary'
@@ -66,8 +72,9 @@ class StorePageListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['meta_title'] = 'Pages | TG11 Shop'
-        context['meta_description'] = 'Browse curated pages and collections from TG11 Shop.'
+        store = _store_settings()
+        context['meta_title'] = f'Pages | {store.name}'
+        context['meta_description'] = f'Browse curated pages and collections from {store.name}.'
         context['meta_url'] = self.request.build_absolute_uri()
         context['meta_type'] = 'website'
         context['twitter_card'] = 'summary'
@@ -85,6 +92,7 @@ class ProductDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = cast(Product, self.get_object())
+        store = _store_settings()
 
         raw_description = product.short_description or strip_tags(product.description)
         description = Truncator(raw_description).chars(180)
@@ -93,7 +101,7 @@ class ProductDetailView(DetailView):
         image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
         product_url = self.request.build_absolute_uri(product.get_absolute_url())
 
-        context['meta_title'] = f'{product.name} | TG11 Shop'
+        context['meta_title'] = f'{product.name} | {store.name}'
         context['meta_description'] = description
         context['meta_url'] = product_url
         context['meta_image'] = image_url
@@ -117,6 +125,7 @@ class StorePageDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         page = cast(StorePage, self.get_object())
+        store = _store_settings()
 
         description_source = page.summary or strip_tags(page.body)
         description = Truncator(description_source).chars(180)
@@ -129,7 +138,7 @@ class StorePageDetailView(DetailView):
             image_obj = getattr(first_product, 'images').first() if first_product else None
             image_url = _absolute_uri(self.request, image_obj.image.url if image_obj else '')
 
-        context['meta_title'] = f'{page.title} | TG11 Shop'
+        context['meta_title'] = f'{page.title} | {store.name}'
         context['meta_description'] = description
         context['meta_url'] = self.request.build_absolute_uri(page.get_absolute_url())
         context['meta_image'] = image_url
@@ -165,13 +174,14 @@ class ProductOEmbedView(View):
         product_url = request.build_absolute_uri(product.get_absolute_url())
         description = Truncator(product.short_description or strip_tags(product.description)).chars(180)
 
+        store = _store_settings()
         payload = {
             'version': '1.0',
             'type': 'rich',
-            'provider_name': 'TG11 Shop',
+            'provider_name': store.name,
             'provider_url': _site_url(),
             'title': product.name,
-            'author_name': 'TG11 Shop',
+            'author_name': store.name,
             'author_url': _site_url(),
             'html': f'<a href="{product_url}">{product.name}</a>',
             'width': 600,

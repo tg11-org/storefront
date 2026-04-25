@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ order.number }} | Manage Order | TG11 Shop{% endblock %}
+{% block title %}{{ order.number }} | Manage Order | {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
 
 {% block content %}
 <section class="section-header">
