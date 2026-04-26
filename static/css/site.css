@@ -76,7 +76,7 @@ a:hover { text-decoration: underline; }
 .product-card-media img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  height: clamp(150px, 28vw, 240px);
   object-fit: cover;
 }
 .card-grid, .stack-list { display: grid; gap: 1rem; }
