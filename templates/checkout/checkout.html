@@ -35,6 +35,9 @@
             <span>
               <strong>{{ quote.carrier }} {{ quote.method_name }}</strong>
               <small>{{ quote.estimated_min_days }}{% if quote.estimated_max_days != quote.estimated_min_days %}-{{ quote.estimated_max_days }}{% endif %} business days{% if quote.fallback %} fallback{% endif %}</small>
+              {% for message in quote.messages %}
+                <small>{{ message }}</small>
+              {% endfor %}
             </span>
             <strong>${{ quote.amount }}</strong>
           </label>

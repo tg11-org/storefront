@@ -90,7 +90,10 @@ def product_create(request):
         variant.is_default = True
         variant.save()
 
-        for index, field_name in enumerate(['image_1', 'image_2', 'image_3', 'image_4', 'image_5']):
+        for index, field_name in enumerate([
+            'image_1', 'image_2', 'image_3', 'image_4', 'image_5',
+            'image_6', 'image_7', 'image_8', 'image_9', 'image_10',
+        ]):
             image_file = product_form.cleaned_data.get(field_name)
             if image_file:
                 ProductImage.objects.create(
@@ -100,14 +103,16 @@ def product_create(request):
                     alt_text=product.name,
                 )
 
-        video_file = product_form.cleaned_data.get('video_file')
-        if video_file:
-            ProductVideo.objects.create(
-                product=product,
-                video=video_file,
-                thumbnail=product_form.cleaned_data.get('video_thumbnail'),
-                title=product_form.cleaned_data.get('video_title') or f'{product.name} video',
-            )
+        for index, suffix in enumerate(['1', '2']):
+            video_file = product_form.cleaned_data.get(f'video_file_{suffix}')
+            if video_file:
+                ProductVideo.objects.create(
+                    product=product,
+                    video=video_file,
+                    thumbnail=product_form.cleaned_data.get(f'video_thumbnail_{suffix}'),
+                    title=product_form.cleaned_data.get(f'video_title_{suffix}') or f'{product.name} video {suffix}',
+                    sort_order=index,
+                )
 
         messages.success(request, f'{product.name} was created.')
         return redirect(product.get_absolute_url())

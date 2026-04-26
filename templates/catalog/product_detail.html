@@ -8,12 +8,17 @@
 {% block content %}
 <section class="detail-grid">
   <article class="detail-media">
-    {% if object.video %}
-      <div class="product-video-container">
-        <video width="100%" height="auto" controls poster="{% if object.video.thumbnail %}{{ object.video.thumbnail.url }}{% endif %}">
-          <source src="{{ object.video.video.url }}" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
+    {% if object.videos.exists %}
+      <div class="product-videos-gallery">
+        {% for product_video in object.videos.all %}
+          <div class="product-video-container">
+            <video width="100%" height="auto" controls poster="{% if product_video.thumbnail %}{{ product_video.thumbnail.url }}{% endif %}">
+              <source src="{{ product_video.video.url }}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            {% if product_video.title %}<p class="media-caption">{{ product_video.title }}</p>{% endif %}
+          </div>
+        {% endfor %}
       </div>
     {% endif %}
 
@@ -45,8 +50,8 @@
           <label for="variant_id">Variant</label>
           <select id="variant_id" name="variant_id" class="form-select" onchange="updateAvailability()">
             {% for variant in object.variants.all %}
-              <option value="{{ variant.id }}" data-stock="{{ variant.stock_quantity }}" data-order-cap="{{ variant.max_order_quantity|default:'' }}">
-                {{ variant.title }} - ${{ variant.price }} 
+              <option value="{{ variant.id }}" data-stock="{{ variant.stock_quantity }}" data-order-cap="{{ variant.max_order_quantity|default:'' }}" data-size-label="{{ variant.display_size_label }}" data-chest="{{ variant.chest_width_in|default:'' }}" data-body-length="{{ variant.body_length_in|default:'' }}" data-sleeve-length="{{ variant.sleeve_length_in|default:'' }}">
+                {{ variant.display_size_label }} - ${{ variant.price }} 
                 {% if variant.stock_quantity > 0 %}
                   ({{ variant.stock_quantity }} available{% if variant.max_order_quantity %}, max {{ variant.max_order_quantity }}/order{% endif %})
                 {% else %}
@@ -55,6 +60,10 @@
               </option>
             {% endfor %}
           </select>
+          <div id="variant-size-details" class="variant-size-details" hidden>
+            <p class="variant-size-title"></p>
+            <p class="variant-size-copy"></p>
+          </div>
         </div>
 
         <div class="form-group">
@@ -89,7 +98,25 @@
           const quantity = parseInt(document.getElementById('quantity').value) || 1;
           const availText = document.getElementById('availability');
           const addBtn = document.getElementById('add-to-cart-btn');
+          const sizeDetails = document.getElementById('variant-size-details');
+          const sizeTitle = sizeDetails.querySelector('.variant-size-title');
+          const sizeCopy = sizeDetails.querySelector('.variant-size-copy');
+          const chest = selected.dataset.chest;
+          const bodyLength = selected.dataset.bodyLength;
+          const sleeveLength = selected.dataset.sleeveLength;
           quantityInput.max = String(Math.max(effectiveLimit, 1));
+
+          if (chest || bodyLength || sleeveLength) {
+            const parts = [];
+            if (chest) parts.push(`Chest ${chest}\u2033`);
+            if (bodyLength) parts.push(`Body length ${bodyLength}\u2033`);
+            if (sleeveLength) parts.push(`Sleeve ${sleeveLength}\u2033`);
+            sizeTitle.textContent = `${selected.dataset.sizeLabel} sizing`;
+            sizeCopy.textContent = parts.join(' • ');
+            sizeDetails.hidden = false;
+          } else {
+            sizeDetails.hidden = true;
+          }
           
           if (effectiveLimit === 0) {
             availText.textContent = 'Out of stock';
@@ -147,6 +174,12 @@
     margin-bottom: 1.5rem;
   }
 
+  .product-videos-gallery {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
   .product-video-container video {
     width: 100%;
     height: auto;
@@ -157,6 +190,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
+  }
+
+  .media-caption {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
   }
 
   .product-image {
@@ -247,6 +287,25 @@
     font-size: 0.875rem;
     color: var(--muted);
     margin-top: 0.5rem;
+  }
+
+  .variant-size-details {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-alt);
+  }
+
+  .variant-size-title {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+  }
+
+  .variant-size-copy {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
   }
 
   .button {

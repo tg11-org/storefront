@@ -6,13 +6,14 @@ from .models import Product, ProductImage, ProductVariant, StorePage, ProductVid
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 1
-    fields = ('title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_default', 'is_active')
+    fields = ('sort_order', 'title', 'size_label', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_default', 'is_active')
+    ordering = ('sort_order', 'id')
 
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
-    max_num = 5
+    max_num = 10
     ordering = ('sort_order',)
     fields = ('image', 'alt_text', 'sort_order')
 
@@ -20,6 +21,9 @@ class ProductImageInline(admin.TabularInline):
 class ProductVideoInline(admin.StackedInline):
     model = ProductVideo
     extra = 0
+    max_num = 2
+    ordering = ('sort_order',)
+    fields = ('video', 'thumbnail', 'title', 'sort_order')
 
 
 @admin.register(Product)
@@ -33,12 +37,13 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'title', 'price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_active')
+    list_display = ('sku', 'product', 'sort_order', 'title', 'size_label', 'price', 'stock_quantity', 'max_order_quantity', 'weight_oz', 'is_active')
     list_filter = ('is_active', 'is_default')
     search_fields = ('sku', 'product__name', 'title')
     fieldsets = (
-        (None, {'fields': ('product', 'title', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_default', 'is_active')}),
+        (None, {'fields': ('product', 'sort_order', 'title', 'size_label', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'max_order_quantity', 'is_default', 'is_active')}),
         ('Shipping', {'fields': ('weight_oz', 'length_in', 'width_in', 'height_in', 'origin_country', 'hs_code')}),
+        ('Apparel sizing', {'fields': ('chest_width_in', 'body_length_in', 'sleeve_length_in')}),
         ('Supplier pricing', {'fields': ('supplier_price', 'supplier_compare_at', 'supplier_sale_price', 'supplier_sale_start', 'supplier_sale_end', 'last_sync_at')}),
     )
 
@@ -51,7 +56,7 @@ class ProductImageAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVideo)
 class ProductVideoAdmin(admin.ModelAdmin):
-    list_display = ('product', 'title', 'uploaded_at')
+    list_display = ('product', 'title', 'sort_order', 'uploaded_at')
     search_fields = ('product__name', 'title')
 
 

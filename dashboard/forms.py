@@ -17,9 +17,17 @@ class ProductCreateForm(forms.ModelForm):
     image_3 = forms.ImageField(required=False, label='Image 3')
     image_4 = forms.ImageField(required=False, label='Image 4')
     image_5 = forms.ImageField(required=False, label='Image 5')
-    video_file = forms.FileField(required=False, label='Product video')
-    video_thumbnail = forms.ImageField(required=False, label='Video thumbnail')
-    video_title = forms.CharField(required=False, label='Video title', max_length=255)
+    image_6 = forms.ImageField(required=False, label='Image 6')
+    image_7 = forms.ImageField(required=False, label='Image 7')
+    image_8 = forms.ImageField(required=False, label='Image 8')
+    image_9 = forms.ImageField(required=False, label='Image 9')
+    image_10 = forms.ImageField(required=False, label='Image 10')
+    video_file_1 = forms.FileField(required=False, label='Product video 1')
+    video_thumbnail_1 = forms.ImageField(required=False, label='Video 1 thumbnail')
+    video_title_1 = forms.CharField(required=False, label='Video 1 title', max_length=255)
+    video_file_2 = forms.FileField(required=False, label='Product video 2')
+    video_thumbnail_2 = forms.ImageField(required=False, label='Video 2 thumbnail')
+    video_title_2 = forms.CharField(required=False, label='Video 2 title', max_length=255)
 
     class Meta:
         model = Product
@@ -43,12 +51,16 @@ class ProductCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name in ['image_1', 'image_2', 'image_3', 'image_4', 'image_5']:
+        for field_name in [
+            'image_1', 'image_2', 'image_3', 'image_4', 'image_5',
+            'image_6', 'image_7', 'image_8', 'image_9', 'image_10',
+        ]:
             self.fields[field_name].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
-        self.fields['video_file'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'video/mp4,video/webm,video/ogg'})
-        self.fields['video_thumbnail'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
-        self.fields['video_title'].widget = forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Optional video title'})
-        self.fields['video_file'].help_text = 'Optional: upload one MP4, WebM, or Ogg product video.'
+        for suffix in ['1', '2']:
+            self.fields[f'video_file_{suffix}'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'video/mp4,video/webm,video/ogg'})
+            self.fields[f'video_thumbnail_{suffix}'].widget = forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'})
+            self.fields[f'video_title_{suffix}'].widget = forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Optional video title'})
+            self.fields[f'video_file_{suffix}'].help_text = 'Optional: upload one MP4, WebM, or Ogg product video.'
 
     def clean_slug(self):
         slug = self.cleaned_data.get('slug') or slugify(self.cleaned_data.get('name', ''))
@@ -58,10 +70,11 @@ class ProductCreateForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get('video_thumbnail') and not cleaned.get('video_file'):
-            self.add_error('video_thumbnail', 'Upload a video before adding a thumbnail.')
-        if cleaned.get('video_title') and not cleaned.get('video_file'):
-            self.add_error('video_title', 'Upload a video before adding a title.')
+        for suffix in ['1', '2']:
+            if cleaned.get(f'video_thumbnail_{suffix}') and not cleaned.get(f'video_file_{suffix}'):
+                self.add_error(f'video_thumbnail_{suffix}', 'Upload a video before adding a thumbnail.')
+            if cleaned.get(f'video_title_{suffix}') and not cleaned.get(f'video_file_{suffix}'):
+                self.add_error(f'video_title_{suffix}', 'Upload a video before adding a title.')
         return cleaned
 
 
@@ -70,7 +83,9 @@ class DefaultVariantForm(forms.ModelForm):
         model = ProductVariant
         fields = (
             'title',
+            'size_label',
             'sku',
+            'sort_order',
             'price',
             'compare_at_price',
             'stock_quantity',
@@ -79,6 +94,9 @@ class DefaultVariantForm(forms.ModelForm):
             'length_in',
             'width_in',
             'height_in',
+            'chest_width_in',
+            'body_length_in',
+            'sleeve_length_in',
             'origin_country',
             'hs_code',
             'supplier_price',
@@ -94,10 +112,14 @@ class DefaultVariantForm(forms.ModelForm):
         optional_fields = [
             'compare_at_price',
             'max_order_quantity',
+            'size_label',
             'weight_oz',
             'length_in',
             'width_in',
             'height_in',
+            'chest_width_in',
+            'body_length_in',
+            'sleeve_length_in',
             'origin_country',
             'hs_code',
             'supplier_price',
@@ -111,6 +133,7 @@ class DefaultVariantForm(forms.ModelForm):
         for field_name in ['weight_oz', 'length_in', 'width_in', 'height_in']:
             self.fields[field_name].initial = '0.00'
         self.fields['origin_country'].initial = 'US'
+        self.fields['sort_order'].initial = 0
 
 
 class StorePageCreateForm(forms.ModelForm):
@@ -284,7 +307,7 @@ class OrderRefundForm(forms.Form):
 
 
 class ProductImageForm(forms.ModelForm):
-    """Form for uploading product images (max 5 per product)."""
+    """Form for uploading product images (max 10 per product)."""
     
     class Meta:
         model = ProductImage
@@ -306,11 +329,11 @@ class ProductImageForm(forms.ModelForm):
 
 
 class ProductVideoForm(forms.ModelForm):
-    """Form for uploading a single product video."""
+    """Form for uploading product videos (max 2 per product)."""
     
     class Meta:
         model = ProductVideo
-        fields = ('video', 'thumbnail', 'title')
+        fields = ('video', 'thumbnail', 'title', 'sort_order')
         widgets = {
             'video': forms.FileInput(attrs={
                 'class': 'form-input',
@@ -325,11 +348,15 @@ class ProductVideoForm(forms.ModelForm):
                 'class': 'form-input',
                 'placeholder': 'e.g., "Product demo" or "How to use"',
             }),
+            'sort_order': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'min': 0,
+            }),
         }
 
 
 class ProductImageFormSet(forms.BaseInlineFormSet):
-    """Validate max 5 images per product."""
+    """Validate max 10 images per product."""
     
     def clean(self):
         super().clean()
@@ -341,5 +368,5 @@ class ProductImageFormSet(forms.BaseInlineFormSet):
             if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                 image_count += 1
         
-        if image_count > 5:
-            raise ValidationError('Maximum 5 images per product.')
+        if image_count > 10:
+            raise ValidationError('Maximum 10 images per product.')

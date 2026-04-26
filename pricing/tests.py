@@ -94,6 +94,55 @@ class ShippingQuoteTests(TestCase):
         self.assertEqual(quotes[0].quote_id, 'emergency:domestic')
         self.assertEqual(quotes[0].amount, Decimal('6.95'))
 
+    @override_settings(
+        POPCUSTOMS_FALLBACK_DOMESTIC_SHIPPING_AMOUNT='0.00',
+        POPCUSTOMS_FALLBACK_DOMESTIC_MIN_DAYS=7,
+        POPCUSTOMS_FALLBACK_DOMESTIC_MAX_DAYS=21,
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_AMOUNT='12.95',
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MIN_DAYS=3,
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MAX_DAYS=7,
+    )
+    def test_popcustoms_fallback_quote_overrides_generic_fallback_window(self):
+        self.product.default_source = Product.Source.POPCUSTOMS
+        self.product.product_type = Product.ProductType.EXTERNAL
+        self.product.save(update_fields=['default_source', 'product_type', 'updated_at'])
+
+        quotes = quote_shipping_methods({'country': 'US'}, self.cart)
+
+        self.assertEqual(len(quotes), 2)
+        standard = quotes[0]
+        express = quotes[1]
+
+        self.assertEqual(standard.carrier, 'PopCustoms')
+        self.assertEqual(standard.method_name, 'Free standard')
+        self.assertEqual(standard.amount, Decimal('0.00'))
+        self.assertEqual(standard.estimated_min_days, 7)
+        self.assertEqual(standard.estimated_max_days, 21)
+        self.assertIn('Estimated 1\u20133 weeks depending on current production queue.', standard.messages)
+
+        self.assertEqual(express.carrier, 'PopCustoms')
+        self.assertEqual(express.method_name, 'Express')
+        self.assertEqual(express.amount, Decimal('12.95'))
+        self.assertEqual(express.estimated_min_days, 3)
+        self.assertEqual(express.estimated_max_days, 7)
+
+    @override_settings(
+        POPCUSTOMS_FALLBACK_DOMESTIC_SHIPPING_AMOUNT='0.00',
+        POPCUSTOMS_FALLBACK_DOMESTIC_MIN_DAYS=7,
+        POPCUSTOMS_FALLBACK_DOMESTIC_MAX_DAYS=21,
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_AMOUNT='',
+    )
+    def test_popcustoms_fallback_standard_only_when_express_not_configured(self):
+        self.product.default_source = Product.Source.POPCUSTOMS
+        self.product.product_type = Product.ProductType.EXTERNAL
+        self.product.save(update_fields=['default_source', 'product_type', 'updated_at'])
+
+        quotes = quote_shipping_methods({'country': 'US'}, self.cart)
+
+        self.assertEqual(len(quotes), 1)
+        self.assertEqual(quotes[0].quote_id, 'emergency:external:popcustoms:standard')
+        self.assertEqual(quotes[0].amount, Decimal('0.00'))
+
 
 class LiveShippingAdapterTests(TestCase):
     @override_settings(EASYPOST_API_KEY='ez_test_key', EASYPOST_API_URL='https://api.easypost.test', STRIPE_CURRENCY='usd')

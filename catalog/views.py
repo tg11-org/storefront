@@ -87,7 +87,7 @@ class ProductDetailView(DetailView):
     template_name = 'catalog/product_detail.html'
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True).prefetch_related('variants', 'images')
+        return Product.objects.filter(is_active=True).prefetch_related('variants', 'images', 'videos')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

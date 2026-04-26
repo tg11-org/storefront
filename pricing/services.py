@@ -131,10 +131,81 @@ def _csv_values(value: str) -> set[str]:
     return {item.strip().upper() for item in value.split(',') if item.strip()}
 
 
-def _emergency_shipping_quote(country: str) -> ShippingQuote:
+def _external_sources(items) -> list[str]:
+    return sorted({
+        getattr(item.product, 'default_source', '')
+        for item in items
+        if getattr(item.product, 'default_source', '') not in ('', 'internal')
+    })
+
+
+def _source_fallback_quotes(country: str, items) -> list[ShippingQuote]:
+    """Return supplier-aware fallback shipping options (free standard + optional paid express)."""
+    is_domestic = country == 'US'
+    sources = _external_sources(items)
+    if not sources:
+        return []
+
+    quotes: list[ShippingQuote] = []
+
+    for source in sources:
+        if source == 'popcustoms':
+            standard_amount = money(
+                settings.POPCUSTOMS_FALLBACK_DOMESTIC_SHIPPING_AMOUNT
+                if is_domestic else settings.POPCUSTOMS_FALLBACK_INTERNATIONAL_SHIPPING_AMOUNT
+            )
+            min_days = settings.POPCUSTOMS_FALLBACK_DOMESTIC_MIN_DAYS if is_domestic else settings.POPCUSTOMS_FALLBACK_INTERNATIONAL_MIN_DAYS
+            max_days = settings.POPCUSTOMS_FALLBACK_DOMESTIC_MAX_DAYS if is_domestic else settings.POPCUSTOMS_FALLBACK_INTERNATIONAL_MAX_DAYS
+            standard_label = 'Free standard' if standard_amount == Decimal('0.00') else 'Standard'
+            quotes.append(ShippingQuote(
+                quote_id='emergency:external:popcustoms:standard',
+                method_id=None,
+                method_name=standard_label,
+                carrier='PopCustoms',
+                amount=standard_amount,
+                estimated_min_days=min_days,
+                estimated_max_days=max_days,
+                rule_id=None,
+                fallback=True,
+                provider='emergency',
+                messages=(
+                    'Estimated 1\u20133 weeks depending on current production queue.',
+                    'Generated supplier-aware fallback rate because no carrier rates matched.',
+                ),
+            ))
+
+            express_amount_str = getattr(
+                settings,
+                'POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_AMOUNT' if is_domestic else 'POPCUSTOMS_FALLBACK_INTERNATIONAL_EXPRESS_AMOUNT',
+                '',
+            )
+            express_min = int(getattr(settings, 'POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MIN_DAYS' if is_domestic else 'POPCUSTOMS_FALLBACK_INTERNATIONAL_EXPRESS_MIN_DAYS', 0))
+            express_max = int(getattr(settings, 'POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MAX_DAYS' if is_domestic else 'POPCUSTOMS_FALLBACK_INTERNATIONAL_EXPRESS_MAX_DAYS', 0))
+            if express_amount_str and express_min and express_max:
+                quotes.append(ShippingQuote(
+                    quote_id='emergency:external:popcustoms:express',
+                    method_id=None,
+                    method_name='Express',
+                    carrier='PopCustoms',
+                    amount=money(express_amount_str),
+                    estimated_min_days=express_min,
+                    estimated_max_days=express_max,
+                    rule_id=None,
+                    fallback=True,
+                    provider='emergency',
+                    messages=('Rush production and expedited shipping.',),
+                ))
+
+    return quotes
+
+
+def _emergency_shipping_quotes(country: str, items=None) -> list[ShippingQuote]:
+    supplier_quotes = _source_fallback_quotes(country, items or [])
+    if supplier_quotes:
+        return supplier_quotes
     is_domestic = country == 'US'
     amount = settings.EMERGENCY_DOMESTIC_SHIPPING_AMOUNT if is_domestic else settings.EMERGENCY_INTERNATIONAL_SHIPPING_AMOUNT
-    return ShippingQuote(
+    return [ShippingQuote(
         quote_id=f'emergency:{"domestic" if is_domestic else "international"}',
         method_id=None,
         method_name='Standard' if is_domestic else 'International Standard',
@@ -146,7 +217,7 @@ def _emergency_shipping_quote(country: str) -> ShippingQuote:
         fallback=True,
         provider='emergency',
         messages=('Generated fallback rate because no configured shipping rates matched.',),
-    )
+    )]
 
 
 def _active_time_window(queryset):
@@ -300,9 +371,12 @@ def quote_shipping_methods(destination: dict | None, cart_or_order, subtotal: De
                 fallback=rule.fallback,
             )
         )
+    supplier_fallback_quotes = _source_fallback_quotes(country, items)
+    if supplier_fallback_quotes and quotes and all(quote.fallback for quote in quotes):
+        quotes = supplier_fallback_quotes
     logger.info('shipping_quotes_resolved', extra={'country': country, 'quote_count': len(quotes), 'subtotal': str(subtotal), 'weight_oz': str(weight)})
     if not quotes and getattr(settings, 'ENABLE_SHIPPING_FALLBACK_RATES', True) and getattr(settings, 'ENABLE_EMERGENCY_SHIPPING_FALLBACK', True):
-        quotes.append(_emergency_shipping_quote(country))
+        quotes.extend(_emergency_shipping_quotes(country, items))
         logger.warning('shipping_emergency_fallback_used', extra={'country': country, 'subtotal': str(subtotal), 'weight_oz': str(weight)})
     return quotes
 

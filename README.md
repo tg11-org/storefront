@@ -323,7 +323,7 @@ SHIPPING_RATE_PROVIDER=shippo
 SHIPPO_API_TOKEN=...
 ```
 
-Live rates require the ship-from fields in `.env`. If the carrier provider fails and `ENABLE_SHIPPING_FALLBACK_RATES=1`, checkout falls back to active `ShippingRateRule` records and logs/sends an ops alert if `PRICING_ALERT_EMAILS_ENABLED=1`.
+Live rates require the ship-from fields in `.env`. If the carrier provider fails and `ENABLE_SHIPPING_FALLBACK_RATES=1`, checkout falls back to active `ShippingRateRule` records and logs/sends an ops alert if `PRICING_ALERT_EMAILS_ENABLED=1`. External-source carts can also use supplier-aware fallback timing and pricing, for example `POPCUSTOMS_FALLBACK_DOMESTIC_MIN_DAYS=7`, `POPCUSTOMS_FALLBACK_DOMESTIC_MAX_DAYS=21`, and `POPCUSTOMS_FALLBACK_DOMESTIC_SHIPPING_AMOUNT=8.95` to show a 1-3 week PopCustoms window instead of a generic 3-7 day fallback.
 
 Provider webhook endpoints:
 
@@ -343,6 +343,8 @@ STRIPE_TAX_BEHAVIOR=exclusive
 ```
 
 Tax calculations run inside the central pricing engine before the Stripe Checkout Session is created. The order stores `tax_total`, `tax_snapshot`, and the complete `pricing_snapshot` for reconciliation and refunds.
+
+External products can also enforce a retail floor from supplier cost by setting `AUTO_ENFORCE_EXTERNAL_RETAIL_FLOOR=1`. The current floor uses `EXTERNAL_RETAIL_MARKUP_PERCENT`, `EXTERNAL_RETAIL_ROUND_TO`, `EXTERNAL_RETAIL_PRICE_ENDING`, and source overhead such as `POPCUSTOMS_PRICING_OVERHEAD`, so a supplier cost can be rolled into the displayed product price instead of appearing only at checkout.
 
 ### Incident runbooks
 

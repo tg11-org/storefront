@@ -16,6 +16,10 @@ db.sqlite3-journal
 media/
 staticfiles/
 
+# Local product image staging
+product-image-staging/*
+!product-image-staging/.gitkeep
+
 # Environment files
 .env
 .env.local

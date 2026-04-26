@@ -17,7 +17,7 @@
     {% if product_form.non_field_errors %}<div class="error-list">{{ product_form.non_field_errors }}</div>{% endif %}
     <div class="form-grid">
       {% for field in product_form %}
-        {% if field.name != 'image_1' and field.name != 'image_2' and field.name != 'image_3' and field.name != 'image_4' and field.name != 'image_5' and field.name != 'video_file' and field.name != 'video_thumbnail' and field.name != 'video_title' %}
+        {% if field.name != 'image_1' and field.name != 'image_2' and field.name != 'image_3' and field.name != 'image_4' and field.name != 'image_5' and field.name != 'image_6' and field.name != 'image_7' and field.name != 'image_8' and field.name != 'image_9' and field.name != 'image_10' and field.name != 'video_file_1' and field.name != 'video_thumbnail_1' and field.name != 'video_title_1' and field.name != 'video_file_2' and field.name != 'video_thumbnail_2' and field.name != 'video_title_2' %}
           <label class="{% if field.field.widget.input_type == 'checkbox' %}checkbox-row{% else %}field-block{% endif %}">
             {% if field.field.widget.input_type == 'checkbox' %}
               {{ field }} <span>{{ field.label }}</span>
@@ -56,10 +56,10 @@
 
   <section class="detail-card dashboard-form">
     <h2>Product media</h2>
-    <p class="text-muted">Upload up to 5 product images and 1 optional video.</p>
+    <p class="text-muted">Upload up to 10 product images and 2 optional videos.</p>
     <div class="form-grid">
       {% for field in product_form %}
-        {% if field.name == 'image_1' or field.name == 'image_2' or field.name == 'image_3' or field.name == 'image_4' or field.name == 'image_5' or field.name == 'video_file' or field.name == 'video_thumbnail' or field.name == 'video_title' %}
+        {% if field.name == 'image_1' or field.name == 'image_2' or field.name == 'image_3' or field.name == 'image_4' or field.name == 'image_5' or field.name == 'image_6' or field.name == 'image_7' or field.name == 'image_8' or field.name == 'image_9' or field.name == 'image_10' or field.name == 'video_file_1' or field.name == 'video_thumbnail_1' or field.name == 'video_title_1' or field.name == 'video_file_2' or field.name == 'video_thumbnail_2' or field.name == 'video_title_2' %}
           <label class="field-block">
             <span>{{ field.label }}</span>
             {{ field }}
