@@ -17,6 +17,18 @@ class TaxProviderError(RuntimeError):
     pass
 
 
+def _stripe_payload(value):
+    if hasattr(value, 'to_dict_recursive'):
+        return value.to_dict_recursive()
+    if isinstance(value, list):
+        return [_stripe_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return [_stripe_payload(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _stripe_payload(item) for key, item in value.items()}
+    return value
+
+
 def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_total: Decimal, shipping_address: dict) -> tuple[Decimal, dict]:
     if not settings.STRIPE_TAX_ENABLED:
         return Decimal('0.00'), {}
@@ -68,6 +80,8 @@ def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_tot
         )
     except stripe.error.StripeError as exc:
         raise TaxProviderError(str(exc)) from exc
+    except Exception as exc:
+        raise TaxProviderError(str(exc)) from exc
 
     tax_total = cents_to_money(getattr(calculation, 'tax_amount_exclusive', 0) + getattr(calculation, 'tax_amount_inclusive', 0))
     snapshot = {
@@ -76,6 +90,6 @@ def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_tot
         'amount_total': str(cents_to_money(getattr(calculation, 'amount_total', 0))),
         'tax_amount_exclusive': str(cents_to_money(getattr(calculation, 'tax_amount_exclusive', 0))),
         'tax_amount_inclusive': str(cents_to_money(getattr(calculation, 'tax_amount_inclusive', 0))),
-        'tax_breakdown': getattr(calculation, 'tax_breakdown', []),
+        'tax_breakdown': _stripe_payload(getattr(calculation, 'tax_breakdown', [])),
     }
     return tax_total, snapshot

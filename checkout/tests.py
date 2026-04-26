@@ -11,6 +11,7 @@ from cart.models import Cart
 from orders.models import Order
 from pricing.services import ShippingQuote
 from pricing.models import ShippingMethod, ShippingRateRule, ShippingZone
+from pricing.tax import TaxProviderError
 
 
 class CheckoutTests(TestCase):
@@ -82,6 +83,16 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No shipping methods are available')
+
+    def test_checkout_tax_failure_returns_form_error(self):
+        self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+
+        with patch('checkout.views.calculate_cart_totals') as mock_calculate_cart_totals:
+            mock_calculate_cart_totals.side_effect = TaxProviderError('Stripe Tax failed')
+            response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True, 'shipping_rate_rule': f'rule:{self.shipping_rule.pk}', 'confirm_checkout': '1'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Tax could not be calculated')
 
     @patch('checkout.views.finalize_order_from_checkout_session')
     def test_success_page_handles_finalize_failure(self, mock_finalize_order):

@@ -205,6 +205,32 @@ class StripeTaxTests(TestCase):
         self.assertEqual(tax_total, Decimal('2.70'))
         self.assertEqual(snapshot['calculation_id'], 'taxcalc_123')
 
+    @override_settings(STRIPE_TAX_ENABLED=True, STRIPE_SECRET_KEY='sk_test_realish_value', STRIPE_CURRENCY='usd')
+    @patch('pricing.tax.get_stripe_client')
+    def test_stripe_tax_snapshot_is_json_serializable(self, mock_get_stripe_client):
+        product = Product.objects.create(name='Tax Mug', slug='tax-mug')
+        variant = ProductVariant.objects.create(product=product, title='Default', sku='TAX-MUG', price='15.00', stock_quantity=2)
+        cart = Cart.objects.create()
+        item = CartItem.objects.create(cart=cart, product=product, variant=variant, quantity=1)
+
+        class StripeLikeObject:
+            def to_dict_recursive(self):
+                return {'jurisdiction': {'country': 'US'}, 'amount': 105}
+
+        client = Mock()
+        client.tax.Calculation.create.return_value = SimpleNamespace(
+            id='taxcalc_456',
+            amount_total=1605,
+            tax_amount_exclusive=105,
+            tax_amount_inclusive=0,
+            tax_breakdown=[StripeLikeObject()],
+        )
+        mock_get_stripe_client.return_value = client
+
+        _tax_total, snapshot = stripe_tax_calculation([item], Decimal('15.00'), Decimal('0.00'), {'country': 'US', 'postal_code': '10001'})
+
+        self.assertEqual(snapshot['tax_breakdown'][0]['jurisdiction']['country'], 'US')
+
 
 class ShippingWebhookTests(TestCase):
     def test_shippo_webhook_records_tracking_update(self):

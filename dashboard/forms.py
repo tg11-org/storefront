@@ -113,6 +113,7 @@ class DefaultVariantForm(forms.ModelForm):
             'compare_at_price',
             'max_order_quantity',
             'size_label',
+            'sort_order',
             'weight_oz',
             'length_in',
             'width_in',

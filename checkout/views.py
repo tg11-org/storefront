@@ -2,6 +2,8 @@ import stripe
 import logging
 import hashlib
 import json
+from decimal import Decimal
+from types import SimpleNamespace
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -16,6 +18,7 @@ from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
 from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
 from pricing.services import calculate_cart_totals, quote_shipping_methods, shipping_quote_from_snapshot
+from pricing.tax import TaxProviderError
 
 from .forms import CheckoutForm
 
@@ -54,12 +57,30 @@ class CheckoutView(LoginRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cart'] = self.cart
-        context['totals'] = calculate_cart_totals(
-            self.cart,
-            self.request.user,
-            coupon_code=self.cart.applied_coupon_code,
-        )
+        context['totals'] = self._safe_cart_totals()
         return context
+
+    def _safe_cart_totals(self):
+        try:
+            return calculate_cart_totals(
+                self.cart,
+                self.request.user,
+                coupon_code=self.cart.applied_coupon_code,
+            )
+        except TaxProviderError:
+            logger.exception('Checkout display totals failed during tax calculation')
+            subtotal = sum((item.variant.price * item.quantity for item in self.cart.items.select_related('variant')), Decimal('0.00'))
+            return SimpleNamespace(
+                subtotal=subtotal,
+                discount_total=Decimal('0.00'),
+                shipping_total=Decimal('0.00'),
+                tax_total=Decimal('0.00'),
+                grand_total=subtotal,
+                applied_rules=[],
+                coupon=None,
+                shipping_quote=None,
+                tax_snapshot={},
+            )
 
     def form_valid(self, form):
         preview_only = self.request.POST.get('confirm_checkout') != '1'
@@ -187,14 +208,19 @@ class CheckoutView(LoginRequiredMixin, FormView):
         if quote_preview.get('quotes') and selected_quote_id not in {quote['quote_id'] for quote in quote_preview['quotes']}:
             form.add_error('shipping_rate_rule', 'Choose a shipping method.')
             raise ValueError('Missing shipping quote')
-        totals = calculate_cart_totals(
-            self.cart,
-            self.request.user,
-            shipping_address=shipping_address.as_dict(),
-            coupon_code=coupon_code,
-            shipping_quote_id=selected_quote_id,
-            shipping_quotes=[shipping_quote_from_snapshot(quote) for quote in quote_preview.get('quotes', [])],
-        )
+        try:
+            totals = calculate_cart_totals(
+                self.cart,
+                self.request.user,
+                shipping_address=shipping_address.as_dict(),
+                coupon_code=coupon_code,
+                shipping_quote_id=selected_quote_id,
+                shipping_quotes=[shipping_quote_from_snapshot(quote) for quote in quote_preview.get('quotes', [])],
+            )
+        except TaxProviderError:
+            logger.exception('Checkout tax calculation failed')
+            form.add_error(None, 'Tax could not be calculated for that address. Check the address or try again shortly.')
+            raise ValueError('Tax calculation failed')
         if coupon_code and not totals.coupon:
             form.add_error('coupon_code', 'Coupon could not be applied.')
             raise ValueError('Invalid coupon')
