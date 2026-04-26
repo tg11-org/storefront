@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+import json
 import logging
 
 import stripe
@@ -19,13 +20,37 @@ class TaxProviderError(RuntimeError):
 
 def _stripe_payload(value):
     if hasattr(value, 'to_dict_recursive'):
-        return value.to_dict_recursive()
+        return _stripe_payload(value.to_dict_recursive())
+    if hasattr(value, 'to_dict'):
+        return _stripe_payload(value.to_dict())
     if isinstance(value, list):
         return [_stripe_payload(item) for item in value]
     if isinstance(value, tuple):
         return [_stripe_payload(item) for item in value]
     if isinstance(value, dict):
-        return {key: _stripe_payload(item) for key, item in value.items()}
+        return {str(key): _stripe_payload(item) for key, item in value.items()}
+    if isinstance(value, Decimal):
+        return str(value)
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if hasattr(value, '__dict__'):
+        public_attrs = {
+            key: item
+            for key, item in vars(value).items()
+            if not key.startswith('_')
+        }
+        if public_attrs:
+            return _stripe_payload(public_attrs)
+    return str(value)
+
+
+def _json_safe_snapshot(snapshot: dict) -> dict:
+    safe_snapshot = _stripe_payload(snapshot)
+    try:
+        json.dumps(safe_snapshot)
+    except TypeError as exc:
+        raise TaxProviderError(f'Stripe Tax returned a non-serializable snapshot: {exc}') from exc
+    return safe_snapshot
     return value
 
 
@@ -90,6 +115,6 @@ def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_tot
         'amount_total': str(cents_to_money(getattr(calculation, 'amount_total', 0))),
         'tax_amount_exclusive': str(cents_to_money(getattr(calculation, 'tax_amount_exclusive', 0))),
         'tax_amount_inclusive': str(cents_to_money(getattr(calculation, 'tax_amount_inclusive', 0))),
-        'tax_breakdown': _stripe_payload(getattr(calculation, 'tax_breakdown', [])),
+        'tax_breakdown': getattr(calculation, 'tax_breakdown', []),
     }
-    return tax_total, snapshot
+    return tax_total, _json_safe_snapshot(snapshot)
