@@ -34,8 +34,8 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store = _store_settings()
-        context['featured_products'] = Product.objects.filter(is_active=True, is_featured=True)[:6]
-        context['latest_products'] = Product.objects.filter(is_active=True)[:8]
+        context['featured_products'] = Product.objects.filter(is_active=True, is_featured=True).prefetch_related('images')[:6]
+        context['latest_products'] = Product.objects.filter(is_active=True).prefetch_related('images')[:8]
         context['meta_title'] = store.name
         context['meta_description'] = store.tagline
         context['meta_url'] = self.request.build_absolute_uri()

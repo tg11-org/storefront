@@ -20,6 +20,13 @@
 <div class="card-grid">
   {% for product in featured_products %}
     <article class="product-card">
+      {% with first_image=product.images.first %}
+        {% if first_image %}
+          <a class="product-card-media" href="{{ product.get_absolute_url }}" aria-label="View {{ product.name }}">
+            <img src="{{ first_image.image.url }}" alt="{{ first_image.alt_text|default:product.name }}">
+          </a>
+        {% endif %}
+      {% endwith %}
       <h3><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
       <p>{{ product.short_description|default:product.description|truncatechars:120 }}</p>
       <div class="card-meta">
