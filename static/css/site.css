@@ -122,6 +122,17 @@ input, select, textarea {
 .dashboard-form { display: grid; gap: 1.25rem; }
 .dashboard-form h2 { margin-top: 0; }
 .dashboard-sections { margin-top: 1rem; }
+.form-action-dock {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  margin-top: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
 .compact-header { grid-template-columns: 1fr auto; align-items: center; margin-bottom: 1rem; }
 .field-block { display: grid; gap: 0.25rem; }
 .field-block small, .checkbox-row + small { color: var(--muted); font-size: 0.85rem; }
@@ -133,4 +144,8 @@ select[multiple] { min-height: 12rem; }
   .brand-row { grid-template-columns: 1fr; }
   .nav-actions { justify-content: flex-start; }
   .site-nav { justify-content: flex-start; }
+  .form-action-dock {
+    position: static;
+    backdrop-filter: none;
+  }
 }

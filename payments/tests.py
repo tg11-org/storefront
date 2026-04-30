@@ -31,6 +31,34 @@ class StripeConfigurationTests(TestCase):
         response = self.client.post(reverse('payments:stripe_webhook'), data=b'{}', content_type='application/json')
         self.assertEqual(response.status_code, 503)
 
+    @override_settings(STRIPE_SECRET_KEY='sk_test_realish_value', STRIPE_WEBHOOK_SECRET='whsec_realish_value')
+    @patch('payments.views.sync_saved_payment_methods')
+    @patch('payments.views.get_stripe_client')
+    def test_webhook_returns_200_when_processing_fails(self, mock_get_stripe_client, mock_sync_saved_payment_methods):
+        mock_sync_saved_payment_methods.side_effect = RuntimeError('sync failed')
+        mock_client = Mock()
+        mock_client.Webhook.construct_event.return_value = {
+            'id': 'evt_test_1',
+            'type': 'checkout.session.completed',
+            'data': {
+                'object': {
+                    'mode': 'setup',
+                    'metadata': {'user_id': '1'},
+                }
+            },
+        }
+        mock_get_stripe_client.return_value = mock_client
+        get_user_model().objects.create_user(email='buyer@example.com', password='StrongPass123!')
+
+        response = self.client.post(
+            reverse('payments:stripe_webhook'),
+            data=b'{}',
+            content_type='application/json',
+            HTTP_STRIPE_SIGNATURE='t=1,v1=test',
+        )
+
+        self.assertEqual(response.status_code, 200)
+
     @patch('payments.views.create_setup_session')
     def test_add_payment_method_handles_stripe_errors(self, mock_create_setup_session):
         user = get_user_model().objects.create_user(email='buyer@example.com', password='StrongPass123!')

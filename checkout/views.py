@@ -5,7 +5,6 @@ import json
 from decimal import Decimal
 from types import SimpleNamespace
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -25,9 +24,12 @@ from .forms import CheckoutForm
 logger = logging.getLogger(__name__)
 
 
-class CheckoutView(LoginRequiredMixin, FormView):
+class CheckoutView(FormView):
     template_name = 'checkout/checkout.html'
     form_class = CheckoutForm
+
+    def _current_user(self):
+        return self.request.user if self.request.user.is_authenticated else None
 
     def dispatch(self, request, *args, **kwargs):
         self.cart = get_or_create_cart(request)
@@ -46,26 +48,31 @@ class CheckoutView(LoginRequiredMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
+        kwargs['user'] = self._current_user()
         return kwargs
 
     def get_initial(self):
         initial = super().get_initial()
         initial['coupon_code'] = self.cart.applied_coupon_code
+        if self.request.user.is_authenticated:
+            initial['email'] = self.request.user.email
         return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cart'] = self.cart
-        context['totals'] = self._safe_cart_totals()
+        context['totals'] = kwargs.get('totals') or self._safe_cart_totals()
         return context
 
-    def _safe_cart_totals(self):
+    def _safe_cart_totals(self, shipping_address: dict | None = None, shipping_quote_id: str | None = None, shipping_quotes=None):
         try:
             return calculate_cart_totals(
                 self.cart,
-                self.request.user,
+                self._current_user(),
+                shipping_address=shipping_address,
                 coupon_code=self.cart.applied_coupon_code,
+                shipping_quote_id=shipping_quote_id,
+                shipping_quotes=shipping_quotes,
             )
         except TaxProviderError:
             logger.exception('Checkout display totals failed during tax calculation')
@@ -92,7 +99,15 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 form.add_error(None, 'No shipping methods are available for that address yet. Check shipping settings or try again shortly.')
                 return self.form_invalid(form)
             self._store_quote_preview(shipping_address.as_dict(), quotes)
-            context = self.get_context_data(form=form)
+            selected_quote = quotes[0] if quotes else None
+            context = self.get_context_data(
+                form=form,
+                totals=self._safe_cart_totals(
+                    shipping_address=shipping_address.as_dict(),
+                    shipping_quote_id=selected_quote.quote_id if selected_quote else None,
+                    shipping_quotes=quotes,
+                ),
+            )
             context['shipping_quotes'] = quotes
             context['quote_preview_ready'] = True
             context['shipping_signature'] = self._cart_address_signature(shipping_address.as_dict())
@@ -115,10 +130,11 @@ class CheckoutView(LoginRequiredMixin, FormView):
         return redirect(session.url, permanent=False)
 
     def _form_invalid_with_quote_preview(self, form):
-        context = self.get_context_data(form=form)
         quote_preview = self.request.session.get('checkout_quote_preview') or {}
+        quotes = [shipping_quote_from_snapshot(quote) for quote in quote_preview.get('quotes', [])]
+        context = self.get_context_data(form=form)
         if quote_preview.get('quotes'):
-            context['shipping_quotes'] = [shipping_quote_from_snapshot(quote) for quote in quote_preview['quotes']]
+            context['shipping_quotes'] = quotes
             context['quote_preview_ready'] = True
             context['shipping_signature'] = quote_preview.get('signature', '')
         return self.render_to_response(context)
@@ -147,8 +163,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
         address = form.cleaned_data['shipping_address']
         if address:
             return address
+        current_user = self._current_user()
         address = Address(
-            user=self.request.user,
+            user=current_user,
             address_type=Address.AddressType.SHIPPING,
             label='Checkout shipping',
             full_name=form.cleaned_data['full_name'],
@@ -162,11 +179,11 @@ class CheckoutView(LoginRequiredMixin, FormView):
             phone_number=form.cleaned_data['phone_number'],
             is_default=form.cleaned_data['save_address'],
         )
-        if not save_new:
+        if not save_new or not current_user:
             return address
         address.save()
         if address.is_default:
-            self.request.user.addresses.filter(address_type=Address.AddressType.SHIPPING).exclude(pk=address.pk).update(is_default=False)
+            current_user.addresses.filter(address_type=Address.AddressType.SHIPPING).exclude(pk=address.pk).update(is_default=False)
         return address
 
     def _resolve_billing_address(self, form, shipping_address, save_new=True):
@@ -175,8 +192,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
         address = form.cleaned_data['billing_address']
         if address:
             return address
+        current_user = self._current_user()
         address = Address(
-            user=self.request.user,
+            user=current_user,
             address_type=Address.AddressType.BILLING,
             label='Checkout billing',
             full_name=form.cleaned_data['billing_full_name'],
@@ -187,7 +205,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
             postal_code=form.cleaned_data['billing_postal_code'],
             country=form.cleaned_data['billing_country'],
         )
-        if save_new:
+        if save_new and current_user:
             address.save()
         return address
 
@@ -211,7 +229,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
         try:
             totals = calculate_cart_totals(
                 self.cart,
-                self.request.user,
+                self._current_user(),
                 shipping_address=shipping_address.as_dict(),
                 coupon_code=coupon_code,
                 shipping_quote_id=selected_quote_id,
@@ -225,9 +243,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
             form.add_error('coupon_code', 'Coupon could not be applied.')
             raise ValueError('Invalid coupon')
         order = Order.objects.create(
-            user=self.request.user,
+            user=self._current_user(),
             cart=self.cart,
-            email=self.request.user.email,
+            email=(self.request.user.email if self.request.user.is_authenticated else form.cleaned_data['email']),
             status=Order.Status.PENDING_PAYMENT,
             source=source,
             sync_state=Order.SyncState.PENDING if source != Order.Source.INTERNAL else Order.SyncState.NOT_APPLICABLE,
@@ -286,7 +304,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
         return listing.external_listing_id if listing else ''
 
 
-class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
+class CheckoutSuccessView(TemplateView):
     template_name = 'checkout/success.html'
 
     def get_context_data(self, **kwargs):
@@ -321,5 +339,5 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
         return order
 
 
-class CheckoutCancelView(LoginRequiredMixin, TemplateView):
+class CheckoutCancelView(TemplateView):
     template_name = 'checkout/cancel.html'

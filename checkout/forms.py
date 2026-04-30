@@ -4,6 +4,7 @@ from accounts.models import Address
 
 
 class CheckoutForm(forms.Form):
+    email = forms.EmailField(required=False)
     shipping_address = forms.ModelChoiceField(queryset=Address.objects.none(), required=False, empty_label='Use a new shipping address')
     full_name = forms.CharField(max_length=255, required=False)
     company_name = forms.CharField(max_length=255, required=False)
@@ -28,11 +29,13 @@ class CheckoutForm(forms.Form):
     shipping_rate_rule = forms.CharField(max_length=255, required=False)
     notes = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        address_qs = user.addresses.all()
+        address_qs = user.addresses.all() if getattr(user, 'is_authenticated', False) else Address.objects.none()
         self.fields['shipping_address'].queryset = address_qs
         self.fields['billing_address'].queryset = address_qs
+        if not getattr(user, 'is_authenticated', False):
+            self.fields['email'].required = True
 
     def clean(self):
         cleaned = super().clean()

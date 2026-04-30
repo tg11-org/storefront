@@ -1,4 +1,5 @@
 import stripe
+import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -18,6 +19,8 @@ from .services import (
     is_configured_stripe_value,
     sync_saved_payment_methods,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -66,18 +69,21 @@ def stripe_webhook(request):
     event_type = event.get('type', '')
     data = event.get('data', {}).get('object', {})
 
-    if event_type == 'checkout.session.completed':
-        if data.get('mode') == 'payment':
-            session_id = data.get('id')
-            if session_id:
-                finalize_order_from_checkout_session(session_id)
-        elif data.get('mode') == 'setup' and data.get('metadata', {}).get('user_id'):
-            user = CustomUser.objects.filter(pk=data['metadata']['user_id']).first()
-            if user:
-                sync_saved_payment_methods(user)
-    elif event_type == 'payment_intent.payment_failed':
-        order_number = data.get('metadata', {}).get('order_number')
-        if order_number:
-            Order.objects.filter(number=order_number).update(status=Order.Status.FAILED)
+    try:
+        if event_type == 'checkout.session.completed':
+            if data.get('mode') == 'payment':
+                session_id = data.get('id')
+                if session_id:
+                    finalize_order_from_checkout_session(session_id)
+            elif data.get('mode') == 'setup' and data.get('metadata', {}).get('user_id'):
+                user = CustomUser.objects.filter(pk=data['metadata']['user_id']).first()
+                if user:
+                    sync_saved_payment_methods(user)
+        elif event_type == 'payment_intent.payment_failed':
+            order_number = data.get('metadata', {}).get('order_number')
+            if order_number:
+                Order.objects.filter(number=order_number).update(status=Order.Status.FAILED)
+    except Exception:
+        logger.exception('Stripe webhook processing failed for event=%s id=%s', event_type, event.get('id', ''))
 
     return HttpResponse(status=200)

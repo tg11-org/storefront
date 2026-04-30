@@ -205,6 +205,37 @@ class StripeTaxTests(TestCase):
         self.assertEqual(tax_total, Decimal('2.70'))
         self.assertEqual(snapshot['calculation_id'], 'taxcalc_123')
 
+    @override_settings(
+        STRIPE_TAX_ENABLED=True,
+        STRIPE_SECRET_KEY='sk_test_realish_value',
+        STRIPE_CURRENCY='usd',
+        SHIP_FROM_LINE1='715 River Oaks Ln',
+        SHIP_FROM_CITY='Merritt Island',
+        SHIP_FROM_STATE='FL',
+        SHIP_FROM_POSTAL_CODE='32953',
+        SHIP_FROM_COUNTRY='US',
+    )
+    @patch('pricing.tax.get_stripe_client')
+    def test_stripe_tax_calculation_sends_ship_from_details(self, mock_get_stripe_client):
+        product = Product.objects.create(name='Tax Hat', slug='tax-hat')
+        variant = ProductVariant.objects.create(product=product, title='Default', sku='TAX-HAT', price='20.00', stock_quantity=2)
+        cart = Cart.objects.create()
+        item = CartItem.objects.create(cart=cart, product=product, variant=variant, quantity=1)
+        client = Mock()
+        client.tax.Calculation.create.return_value = SimpleNamespace(
+            id='taxcalc_ship_from',
+            amount_total=2140,
+            tax_amount_exclusive=140,
+            tax_amount_inclusive=0,
+            tax_breakdown=[],
+        )
+        mock_get_stripe_client.return_value = client
+
+        stripe_tax_calculation([item], Decimal('20.00'), Decimal('0.00'), {'country': 'US', 'postal_code': '10001'})
+
+        _, kwargs = client.tax.Calculation.create.call_args
+        self.assertEqual(kwargs['ship_from_details']['address']['state'], 'FL')
+
     @override_settings(STRIPE_TAX_ENABLED=True, STRIPE_SECRET_KEY='sk_test_realish_value', STRIPE_CURRENCY='usd')
     @patch('pricing.tax.get_stripe_client')
     def test_stripe_tax_snapshot_is_json_serializable(self, mock_get_stripe_client):

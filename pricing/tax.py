@@ -51,7 +51,21 @@ def _json_safe_snapshot(snapshot: dict) -> dict:
     except TypeError as exc:
         raise TaxProviderError(f'Stripe Tax returned a non-serializable snapshot: {exc}') from exc
     return safe_snapshot
-    return value
+
+
+def _ship_from_details() -> dict:
+    address = {
+        'line1': getattr(settings, 'SHIP_FROM_LINE1', ''),
+        'line2': getattr(settings, 'SHIP_FROM_LINE2', ''),
+        'city': getattr(settings, 'SHIP_FROM_CITY', ''),
+        'state': getattr(settings, 'SHIP_FROM_STATE', ''),
+        'postal_code': getattr(settings, 'SHIP_FROM_POSTAL_CODE', ''),
+        'country': getattr(settings, 'SHIP_FROM_COUNTRY', 'US'),
+    }
+    address = {key: value for key, value in address.items() if value}
+    if not address.get('country'):
+        return {}
+    return {'address': address}
 
 
 def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_total: Decimal, shipping_address: dict) -> tuple[Decimal, dict]:
@@ -83,9 +97,9 @@ def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_tot
         return Decimal('0.00'), {}
 
     try:
-        calculation = client.tax.Calculation.create(
-            currency=settings.STRIPE_CURRENCY,
-            customer_details={
+        calculation_params = {
+            'currency': settings.STRIPE_CURRENCY,
+            'customer_details': {
                 'address': {
                     'line1': shipping_address.get('line1', ''),
                     'line2': shipping_address.get('line2', ''),
@@ -96,13 +110,17 @@ def stripe_tax_calculation(items, subtotal_after_discount: Decimal, shipping_tot
                 },
                 'address_source': 'shipping',
             },
-            line_items=line_items,
-            shipping_cost={
+            'line_items': line_items,
+            'shipping_cost': {
                 'amount': amount_to_cents(shipping_total),
                 'tax_behavior': settings.STRIPE_TAX_BEHAVIOR,
             },
-            expand=['line_items'],
-        )
+            'expand': ['line_items'],
+        }
+        ship_from = _ship_from_details()
+        if ship_from:
+            calculation_params['ship_from_details'] = ship_from
+        calculation = client.tax.Calculation.create(**calculation_params)
     except stripe.error.StripeError as exc:
         raise TaxProviderError(str(exc)) from exc
     except Exception as exc:

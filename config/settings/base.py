@@ -45,9 +45,37 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def unique_values(values: list[str]) -> list[str]:
+    seen = set()
+    result = []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
+
+
+def host_without_port(value: str | None) -> str:
+    if not value:
+        return ''
+    host = value.strip()
+    if '://' in host:
+        host = host.split('://', 1)[1]
+    host = host.split('/', 1)[0]
+    if host.startswith('['):
+        return host.strip('[]')
+    return host.rsplit(':', 1)[0] if ':' in host else host
+
+
 SECRET_KEY = env('DJANGO_SECRET_KEY', 'django-insecure-change-me')
 DEBUG = env_bool('DJANGO_DEBUG', False)
-ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', ['shop.tg11.org', 'localhost', '127.0.0.1'])
+ALLOWED_HOSTS = unique_values(
+    env_list('DJANGO_ALLOWED_HOSTS', ['shop.tg11.org', 'localhost', '127.0.0.1'])
+    + [
+        host_without_port(env('APP_HOST', '127.6.0.10')),
+        host_without_port(env('GUNICORN_BIND', '127.6.0.10:8000')),
+    ]
+)
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', ['https://shop.tg11.org'])
 
 INSTALLED_APPS = [

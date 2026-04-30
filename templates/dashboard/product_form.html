@@ -48,10 +48,6 @@
         </label>
       {% endfor %}
     </div>
-    <div class="cart-actions">
-      <button class="button primary" type="submit">Create product</button>
-      <a class="button" href="{% url 'dashboard:manage' %}">Cancel</a>
-    </div>
   </section>
 
   <section class="detail-card dashboard-form">
@@ -68,6 +64,13 @@
           </label>
         {% endif %}
       {% endfor %}
+    </div>
+  </section>
+
+  <section class="detail-card form-action-dock">
+    <div class="cart-actions">
+      <button class="button primary" type="submit">Create product</button>
+      <a class="button" href="{% url 'dashboard:manage' %}">Cancel</a>
     </div>
   </section>
 </form>

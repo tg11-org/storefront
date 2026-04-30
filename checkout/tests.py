@@ -1,8 +1,9 @@
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import Address
@@ -51,6 +52,25 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.items.get().sku, 'TEE-001')
         self.assertEqual(order.items.get().custom_request, 'Make it extra soft')
 
+    @override_settings(TAX_PROVIDER='stripe_tax', STRIPE_TAX_ENABLED=True, STRIPE_SECRET_KEY='sk_test_realish_value', STRIPE_CURRENCY='usd')
+    @patch('pricing.tax.get_stripe_client')
+    def test_checkout_preview_includes_tax_for_shipping_address(self, mock_get_stripe_client):
+        client = mock_get_stripe_client.return_value
+        client.tax.Calculation.create.return_value = SimpleNamespace(
+            id='taxcalc_preview',
+            amount_total=3905,
+            tax_amount_exclusive=210,
+            tax_amount_inclusive=0,
+            tax_breakdown=[],
+        )
+
+        response = self.client.post(reverse('checkout:start'), {'shipping_address': self.address.pk, 'same_as_shipping': True})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '$2.10')
+        _, kwargs = client.tax.Calculation.create.call_args
+        self.assertEqual(kwargs['customer_details']['address']['state'], 'NY')
+
     @patch('checkout.views.create_checkout_session')
     @patch('checkout.views.quote_shipping_methods')
     def test_checkout_accepts_long_live_shipping_quote_id(self, mock_quote_shipping_methods, mock_create_checkout_session):
@@ -93,6 +113,44 @@ class CheckoutTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Tax could not be calculated')
+
+    @patch('checkout.views.create_checkout_session')
+    def test_guest_checkout_creates_order_without_user(self, mock_create_checkout_session):
+        self.client.logout()
+        session = self.client.session
+        if not session.session_key:
+            session.save()
+        guest_cart = Cart.objects.create(session_key=session.session_key)
+        guest_cart.items.create(product=self.product, variant=self.variant, quantity=1)
+        mock_create_checkout_session.return_value.url = 'https://checkout.stripe.test/session'
+
+        preview_response = self.client.post(reverse('checkout:start'), {
+            'email': 'guest@example.com',
+            'full_name': 'Guest Buyer',
+            'line1': '1 Main St',
+            'city': 'Orlando',
+            'postal_code': '32801',
+            'country': 'US',
+            'same_as_shipping': True,
+        })
+        self.assertEqual(preview_response.status_code, 200)
+
+        response = self.client.post(reverse('checkout:start'), {
+            'email': 'guest@example.com',
+            'full_name': 'Guest Buyer',
+            'line1': '1 Main St',
+            'city': 'Orlando',
+            'postal_code': '32801',
+            'country': 'US',
+            'same_as_shipping': True,
+            'shipping_rate_rule': f'rule:{self.shipping_rule.pk}',
+            'confirm_checkout': '1',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.latest('pk')
+        self.assertIsNone(order.user)
+        self.assertEqual(order.email, 'guest@example.com')
 
     @patch('checkout.views.finalize_order_from_checkout_session')
     def test_success_page_handles_finalize_failure(self, mock_finalize_order):
