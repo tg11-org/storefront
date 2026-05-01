@@ -42,6 +42,7 @@
     <h2>Shipping</h2>
     {{ form.email.label_tag }}{{ form.email }}
     {{ form.shipping_address.label_tag }}{{ form.shipping_address }}
+    <p class="form-hint">Country is auto-detected when possible, but you can always change it.</p>
     <div class="form-grid">
       {{ form.full_name.label_tag }}{{ form.full_name }}
       {{ form.company_name.label_tag }}{{ form.company_name }}
@@ -84,6 +85,7 @@
   <section class="stack-card">
     <h2>Billing</h2>
     {{ form.billing_address.label_tag }}{{ form.billing_address }}
+    <p class="form-hint">Billing fields adapt to your selected country or region.</p>
     <div class="form-grid">
       {{ form.billing_full_name.label_tag }}{{ form.billing_full_name }}
       {{ form.billing_line1.label_tag }}{{ form.billing_line1 }}
@@ -125,6 +127,12 @@
     margin-top: 1rem;
   }
 
+  .form-hint {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0.75rem;
+  }
+
   .shipping-option {
     align-items: center;
     border: 1px solid var(--line);
@@ -161,4 +169,86 @@
     }
   }
 </style>
+
+<script>
+  (function () {
+    const REGION_COPY = {
+      US: { region: 'State', postal: 'ZIP code' },
+      CA: { region: 'Province', postal: 'Postal code' },
+      GB: { region: 'County / Region', postal: 'Postcode' },
+      IE: { region: 'County', postal: 'Eircode' },
+      AU: { region: 'State / Territory', postal: 'Postcode' },
+      NZ: { region: 'Region', postal: 'Postcode' },
+      DEFAULT: { region: 'State / Province / Region', postal: 'Postal code' }
+    };
+
+    function selectedCountry(selectEl) {
+      if (!selectEl) {
+        return 'US';
+      }
+      return (selectEl.value || 'US').toUpperCase();
+    }
+
+    function updateAddressLabels(countryCode, isBilling) {
+      const prefix = isBilling ? 'billing_' : '';
+      const copy = REGION_COPY[countryCode] || REGION_COPY.DEFAULT;
+      const regionField = document.getElementById(`id_${prefix}state`);
+      const postalField = document.getElementById(`id_${prefix}postal_code`);
+      const regionLabel = document.querySelector(`label[for="id_${prefix}state"]`);
+      const postalLabel = document.querySelector(`label[for="id_${prefix}postal_code"]`);
+      if (regionLabel) {
+        regionLabel.textContent = copy.region;
+      }
+      if (postalLabel) {
+        postalLabel.textContent = copy.postal;
+      }
+      if (regionField) {
+        regionField.placeholder = copy.region;
+      }
+      if (postalField) {
+        postalField.placeholder = copy.postal;
+      }
+    }
+
+    function browserCountryHint() {
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale || navigator.language || '';
+      const parts = locale.replace('_', '-').split('-');
+      const maybeCountry = parts.length > 1 ? parts[parts.length - 1] : '';
+      const normalized = String(maybeCountry || '').toUpperCase();
+      if (/^[A-Z]{2}$/.test(normalized)) {
+        return normalized === 'UK' ? 'GB' : normalized;
+      }
+      return '';
+    }
+
+    function applyCountryDefaults() {
+      const shippingCountry = document.getElementById('id_country');
+      const billingCountry = document.getElementById('id_billing_country');
+      const hint = browserCountryHint();
+
+      if (shippingCountry && shippingCountry.value === 'US' && hint && shippingCountry.querySelector(`option[value="${hint}"]`)) {
+        shippingCountry.value = hint;
+      }
+      if (billingCountry && billingCountry.value === 'US' && hint && billingCountry.querySelector(`option[value="${hint}"]`)) {
+        billingCountry.value = hint;
+      }
+
+      updateAddressLabels(selectedCountry(shippingCountry), false);
+      updateAddressLabels(selectedCountry(billingCountry), true);
+
+      if (shippingCountry) {
+        shippingCountry.addEventListener('change', function () {
+          updateAddressLabels(selectedCountry(shippingCountry), false);
+        });
+      }
+      if (billingCountry) {
+        billingCountry.addEventListener('change', function () {
+          updateAddressLabels(selectedCountry(billingCountry), true);
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', applyCountryDefaults);
+  })();
+</script>
 {% endblock %}

@@ -92,20 +92,24 @@ def create_checkout_session(order: Order, success_url: str, cancel_url: str):
                 }
             )
 
-    session = client.checkout.Session.create(
-        mode='payment',
-        customer=customer_id,
-        client_reference_id=order.number,
-        metadata={'order_number': order.number, 'user_id': str(order.user_id or ''), 'expected_total': str(order.grand_total)},
-        line_items=line_items,
-        success_url=success_url,
-        cancel_url=cancel_url,
-        saved_payment_method_options={'payment_method_save': 'enabled'},
-        payment_intent_data={
-            'metadata': {'order_number': order.number},
-            'setup_future_usage': 'off_session',
-        },
-    )
+    payment_intent_data = {'metadata': {'order_number': order.number}}
+    if customer_id:
+        payment_intent_data['setup_future_usage'] = 'off_session'
+
+    session_kwargs = {
+        'mode': 'payment',
+        'customer': customer_id,
+        'client_reference_id': order.number,
+        'metadata': {'order_number': order.number, 'user_id': str(order.user_id or ''), 'expected_total': str(order.grand_total)},
+        'line_items': line_items,
+        'success_url': success_url,
+        'cancel_url': cancel_url,
+        'payment_intent_data': payment_intent_data,
+    }
+    if customer_id:
+        session_kwargs['saved_payment_method_options'] = {'payment_method_save': 'enabled'}
+
+    session = client.checkout.Session.create(**session_kwargs)
     order.stripe_checkout_session_id = session.id
     order.save(update_fields=['stripe_checkout_session_id', 'updated_at'])
     PaymentRecord.objects.update_or_create(
@@ -120,6 +124,15 @@ def create_checkout_session(order: Order, success_url: str, cancel_url: str):
         },
     )
     return session
+
+
+def create_payment_session(order: Order, success_url: str, cancel_url: str):
+    provider = (getattr(settings, 'PAYMENT_PROVIDER', 'stripe') or 'stripe').strip().lower()
+    if provider == 'stripe':
+        return create_checkout_session(order, success_url, cancel_url)
+    if provider == 'foxpay':
+        raise StripeConfigurationError('FoxPay provider is not implemented yet. Set PAYMENT_PROVIDER=stripe for now.')
+    raise StripeConfigurationError(f'Unsupported payment provider: {provider}')
 
 
 def create_setup_session(user, success_url: str, cancel_url: str):

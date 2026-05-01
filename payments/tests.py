@@ -11,7 +11,14 @@ from catalog.models import Product, ProductVariant
 from connectors.models import ChannelAccount, SyncJob
 from orders.models import Order, OrderItem
 
-from .services import StripeConfigurationError, create_setup_session, finalize_order_from_checkout_session, get_stripe_client, is_configured_stripe_value
+from .services import (
+    StripeConfigurationError,
+    create_payment_session,
+    create_setup_session,
+    finalize_order_from_checkout_session,
+    get_stripe_client,
+    is_configured_stripe_value,
+)
 
 
 class StripeConfigurationTests(TestCase):
@@ -84,6 +91,13 @@ class StripeConfigurationTests(TestCase):
         _, kwargs = mock_client.checkout.Session.create.call_args
         self.assertEqual(kwargs['mode'], 'setup')
         self.assertEqual(kwargs['currency'], 'usd')
+
+    @override_settings(PAYMENT_PROVIDER='foxpay')
+    def test_create_payment_session_raises_for_unimplemented_foxpay(self):
+        order = Order.objects.create(email='buyer@example.com')
+
+        with self.assertRaises(StripeConfigurationError):
+            create_payment_session(order, 'https://shop.tg11.org/ok', 'https://shop.tg11.org/cancel')
 
 
 class StripeCheckoutFinalizationTests(TestCase):

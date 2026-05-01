@@ -2,6 +2,7 @@ import stripe
 import logging
 import hashlib
 import json
+import re
 from decimal import Decimal
 from types import SimpleNamespace
 from django.contrib import messages
@@ -15,7 +16,7 @@ from cart.views import get_or_create_cart
 from catalog.models import StoreSettings
 from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
-from payments.services import StripeConfigurationError, create_checkout_session, finalize_order_from_checkout_session
+from payments.services import StripeConfigurationError, create_payment_session, finalize_order_from_checkout_session
 from pricing.services import calculate_cart_totals, quote_shipping_methods, shipping_quote_from_snapshot
 from pricing.tax import TaxProviderError
 
@@ -27,6 +28,14 @@ logger = logging.getLogger(__name__)
 class CheckoutView(FormView):
     template_name = 'checkout/checkout.html'
     form_class = CheckoutForm
+
+    COUNTRY_HEADER_CANDIDATES = (
+        'HTTP_CF_IPCOUNTRY',
+        'HTTP_X_COUNTRY_CODE',
+        'HTTP_X_GEOIP_COUNTRY',
+        'HTTP_X_APPENGINE_COUNTRY',
+        'GEOIP_COUNTRY_CODE',
+    )
 
     def _current_user(self):
         return self.request.user if self.request.user.is_authenticated else None
@@ -54,9 +63,39 @@ class CheckoutView(FormView):
     def get_initial(self):
         initial = super().get_initial()
         initial['coupon_code'] = self.cart.applied_coupon_code
+        detected_country = self._detect_country_code()
+        initial.setdefault('country', detected_country)
+        initial.setdefault('billing_country', detected_country)
         if self.request.user.is_authenticated:
             initial['email'] = self.request.user.email
         return initial
+
+    def _normalize_country_code(self, value: str | None) -> str:
+        if not value:
+            return ''
+        code = value.strip().upper()
+        if code == 'UK':
+            return 'GB'
+        return code if re.fullmatch(r'[A-Z]{2}', code) else ''
+
+    def _detect_country_code(self) -> str:
+        for header_name in self.COUNTRY_HEADER_CANDIDATES:
+            code = self._normalize_country_code(self.request.META.get(header_name))
+            if code:
+                return code
+
+        accept_language = self.request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+        for token in accept_language.split(','):
+            language_part = token.split(';', 1)[0].strip()
+            if '-' in language_part:
+                code = self._normalize_country_code(language_part.rsplit('-', 1)[-1])
+                if code:
+                    return code
+            if '_' in language_part:
+                code = self._normalize_country_code(language_part.rsplit('_', 1)[-1])
+                if code:
+                    return code
+        return 'US'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -117,7 +156,7 @@ class CheckoutView(FormView):
         except ValueError:
             return self._form_invalid_with_quote_preview(form)
         try:
-            session = create_checkout_session(
+            session = create_payment_session(
                 order,
                 self.request.build_absolute_uri(reverse('checkout:success')) + f'?order={order.number}&session_id={{CHECKOUT_SESSION_ID}}',
                 self.request.build_absolute_uri(reverse('checkout:cancel')) + f'?order={order.number}',
