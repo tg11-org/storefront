@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from cart.models import Cart, CartItem
-from catalog.models import Product, ProductVariant, StorePage
+from catalog.models import Product, ProductVariant, StorePage, StoreSettings
 from orders.models import Order
 
 from .models import Coupon, Promotion, PromotionScope, ShippingMethod, ShippingRateRule, ShippingWebhookEvent, ShippingZone
@@ -101,6 +101,7 @@ class ShippingQuoteTests(TestCase):
         POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_AMOUNT='12.95',
         POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MIN_DAYS=3,
         POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MAX_DAYS=7,
+        ENABLE_POPCUSTOMS_EXPRESS=True,
     )
     def test_popcustoms_fallback_quote_overrides_generic_fallback_window(self):
         self.product.default_source = Product.Source.POPCUSTOMS
@@ -142,6 +143,98 @@ class ShippingQuoteTests(TestCase):
         self.assertEqual(len(quotes), 1)
         self.assertEqual(quotes[0].quote_id, 'emergency:external:popcustoms:standard')
         self.assertEqual(quotes[0].amount, Decimal('0.00'))
+
+    @override_settings(
+        POPCUSTOMS_FALLBACK_DOMESTIC_SHIPPING_AMOUNT='2.00',
+        POPCUSTOMS_FALLBACK_DOMESTIC_MIN_DAYS=7,
+        POPCUSTOMS_FALLBACK_DOMESTIC_MAX_DAYS=21,
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_AMOUNT='30.00',
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MIN_DAYS=7,
+        POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MAX_DAYS=14,
+        ENABLE_POPCUSTOMS_EXPRESS=False,
+    )
+    def test_popcustoms_express_is_suppressed_when_disabled(self):
+        """Express stays off the storefront even while its amounts are configured."""
+        self.product.default_source = Product.Source.POPCUSTOMS
+        self.product.product_type = Product.ProductType.EXTERNAL
+        self.product.save(update_fields=['default_source', 'product_type', 'updated_at'])
+
+        quotes = quote_shipping_methods({'country': 'US'}, self.cart)
+
+        self.assertEqual(len(quotes), 1)
+        self.assertEqual(quotes[0].quote_id, 'emergency:external:popcustoms:standard')
+        self.assertNotIn('express', [quote.quote_id.rsplit(':', 1)[-1] for quote in quotes])
+
+
+class FreeShippingThresholdTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(name='Threshold Hoodie', slug='threshold-hoodie')
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            title='Default',
+            sku='THRESH-001',
+            price='30.00',
+            stock_quantity=50,
+            weight_oz='20.00',
+        )
+        self.cart = Cart.objects.create()
+        self.item = CartItem.objects.create(cart=self.cart, product=self.product, variant=self.variant, quantity=1)
+        self.method = ShippingMethod.objects.create(name='Standard', carrier=ShippingMethod.Carrier.CUSTOM)
+        self.zone = ShippingZone.objects.create(name='US', countries='US')
+        ShippingRateRule.objects.create(zone=self.zone, method=self.method, amount='6.95', fallback=True)
+
+        settings_obj = StoreSettings.current()
+        settings_obj.free_shipping_threshold = Decimal('100.00')
+        settings_obj.save(update_fields=['free_shipping_threshold'])
+
+    def _set_quantity(self, quantity):
+        self.item.quantity = quantity
+        self.item.save(update_fields=['quantity'])
+
+    def test_shipping_is_charged_below_threshold(self):
+        self._set_quantity(3)  # 90.00
+
+        totals = calculate_cart_totals(self.cart, shipping_address={'country': 'US'})
+
+        self.assertEqual(totals.subtotal, Decimal('90.00'))
+        self.assertEqual(totals.shipping_total, Decimal('6.95'))
+
+    def test_shipping_is_waived_at_threshold(self):
+        self._set_quantity(4)  # 120.00
+
+        totals = calculate_cart_totals(self.cart, shipping_address={'country': 'US'})
+
+        self.assertEqual(totals.subtotal, Decimal('120.00'))
+        self.assertEqual(totals.shipping_total, Decimal('0.00'))
+        self.assertEqual(totals.grand_total, Decimal('120.00'))
+        self.assertIn(
+            'free_shipping_threshold',
+            [rule.code for rule in totals.applied_rules],
+        )
+
+    def test_threshold_uses_subtotal_after_discounts(self):
+        self._set_quantity(4)  # 120.00 before a 25% discount -> 90.00
+        promotion = Promotion.objects.create(
+            name='Quarter off',
+            promotion_type=Promotion.PromotionType.PERCENT_OFF,
+            value='25.00',
+        )
+        PromotionScope.objects.create(promotion=promotion, scope_type=PromotionScope.ScopeType.GLOBAL)
+
+        totals = calculate_cart_totals(self.cart, shipping_address={'country': 'US'})
+
+        self.assertEqual(totals.discount_total, Decimal('30.00'))
+        self.assertEqual(totals.shipping_total, Decimal('6.95'))
+
+    def test_threshold_of_zero_disables_the_waiver(self):
+        settings_obj = StoreSettings.current()
+        settings_obj.free_shipping_threshold = Decimal('0.00')
+        settings_obj.save(update_fields=['free_shipping_threshold'])
+        self._set_quantity(10)  # 300.00
+
+        totals = calculate_cart_totals(self.cart, shipping_address={'country': 'US'})
+
+        self.assertEqual(totals.shipping_total, Decimal('6.95'))
 
 
 class LiveShippingAdapterTests(TestCase):

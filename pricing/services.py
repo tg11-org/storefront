@@ -139,6 +139,22 @@ def _external_sources(items) -> list[str]:
     })
 
 
+def _free_shipping_threshold() -> Decimal | None:
+    """Cart subtotal at which shipping is waived, or None when the feature is off.
+
+    Reads StoreSettings.free_shipping_threshold so the storefront copy and the
+    actual maths come from the same place. A threshold of 0 disables it.
+    """
+    try:
+        threshold = StoreSettings.current().free_shipping_threshold
+    except Exception:  # pragma: no cover - store settings unavailable
+        logger.warning('free_shipping_threshold_unavailable')
+        return None
+    if threshold is None or threshold <= Decimal('0.00'):
+        return None
+    return money(threshold)
+
+
 def _source_fallback_quotes(country: str, items) -> list[ShippingQuote]:
     """Return supplier-aware fallback shipping options (free standard + optional paid express)."""
     is_domestic = country == 'US'
@@ -181,7 +197,8 @@ def _source_fallback_quotes(country: str, items) -> list[ShippingQuote]:
             )
             express_min = int(getattr(settings, 'POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MIN_DAYS' if is_domestic else 'POPCUSTOMS_FALLBACK_INTERNATIONAL_EXPRESS_MIN_DAYS', 0))
             express_max = int(getattr(settings, 'POPCUSTOMS_FALLBACK_DOMESTIC_EXPRESS_MAX_DAYS' if is_domestic else 'POPCUSTOMS_FALLBACK_INTERNATIONAL_EXPRESS_MAX_DAYS', 0))
-            if express_amount_str and express_min and express_max:
+            express_enabled = getattr(settings, 'ENABLE_POPCUSTOMS_EXPRESS', False)
+            if express_enabled and express_amount_str and express_min and express_max:
                 quotes.append(ShippingQuote(
                     quote_id='emergency:external:popcustoms:express',
                     method_id=None,
@@ -409,13 +426,31 @@ def calculate_cart_totals(cart, customer=None, shipping_address: dict | None = N
             discount_total = money(discount_total + discount)
             applied_rules.append(AppliedRule('promotion', promotion.name, promotion.name, discount, {'type': promotion.promotion_type}))
 
+    # Free-shipping threshold from Store settings. Measured against the subtotal
+    # after discounts, so a coupon cannot push a cart over the line for free.
+    free_shipping_from_threshold = False
+    threshold = _free_shipping_threshold()
+    if threshold is not None and not free_shipping:
+        if max(Decimal('0.00'), subtotal - discount_total) >= threshold:
+            free_shipping = True
+            free_shipping_from_threshold = True
+
     quotes = shipping_quotes if shipping_quotes is not None else (quote_shipping_methods(shipping_address, cart, subtotal=subtotal) if shipping_address else [])
     shipping_quote = None
     if quotes:
         shipping_quote = next((quote for quote in quotes if quote.quote_id == str(shipping_quote_id) or str(quote.rule_id) == str(shipping_quote_id)), None) or quotes[0]
     shipping_total = Decimal('0.00') if free_shipping else (shipping_quote.amount if shipping_quote else Decimal('0.00'))
     if free_shipping and shipping_quote:
-        applied_rules.append(AppliedRule('shipping', 'free_shipping', 'Free shipping', shipping_quote.amount))
+        if free_shipping_from_threshold:
+            applied_rules.append(AppliedRule(
+                'shipping',
+                'free_shipping_threshold',
+                f'Free shipping on orders over ${threshold}',
+                shipping_quote.amount,
+                {'threshold': str(threshold)},
+            ))
+        else:
+            applied_rules.append(AppliedRule('shipping', 'free_shipping', 'Free shipping', shipping_quote.amount))
 
     tax_total = Decimal('0.00')
     tax_snapshot = {}
