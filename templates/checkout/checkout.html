@@ -6,7 +6,7 @@
     <p class="eyebrow">Checkout</p>
     <h1>Review and pay</h1>
   </div>
-  <p>Orders use Stripe Checkout in test mode and only store Stripe references in Django.</p>
+  <p>Orders are processed securely with Stripe Checkout, and Django stores only payment references.</p>
 </section>
 <form method="post" class="checkout-grid">
   {% csrf_token %}
