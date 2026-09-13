@@ -76,15 +76,17 @@
         {% endfor %}
       </div>
       <input type="hidden" name="confirm_checkout" value="1">
-      {% if foxpay_available %}
+      {% if foxpay_available or paypal_available %}
       <fieldset class="payment-choice" style="border:1px solid var(--border,#ddd);border-radius:10px;padding:.75rem;margin:.75rem 0;">
         <legend style="padding:0 .4rem;">How would you like to pay?</legend>
         <label style="display:block;margin:.2rem 0;">
           <input type="radio" name="payment_provider" value="stripe" checked> Card, Apple Pay or Google Pay <span class="muted">(Stripe)</span>
         </label>
+        {% if foxpay_available %}
         <label style="display:block;margin:.2rem 0;">
           <input type="radio" name="payment_provider" value="foxpay"> Fox Pay <span class="muted">(card, crypto or a saved method, by TG11)</span>
         </label>
+        {% endif %}
         {% if paypal_available %}
         <label style="display:block;margin:.2rem 0;">
           <input type="radio" name="payment_provider" value="paypal"> PayPal <span class="muted">(your PayPal balance or a card)</span>
