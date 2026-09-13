@@ -16,6 +16,7 @@ from cart.views import get_or_create_cart
 from catalog.models import StoreSettings
 from connectors.models import ExternalListing
 from orders.models import Order, OrderItem
+from payments import foxpay
 from payments.services import StripeConfigurationError, create_payment_session, finalize_order_from_checkout_session
 from pricing.services import calculate_cart_totals, quote_shipping_methods, shipping_quote_from_snapshot
 from pricing.tax import TaxProviderError
@@ -156,17 +157,29 @@ class CheckoutView(FormView):
         except ValueError:
             return self._form_invalid_with_quote_preview(form)
         try:
+            if self.request.POST.get('payment_provider') == 'foxpay' and foxpay.is_enabled():
+                checkout_url = foxpay.create_payment_intent(
+                    order,
+                    self.request.build_absolute_uri(reverse('checkout:success')) + f'?order={order.number}&provider=foxpay',
+                    self.request.build_absolute_uri(reverse('checkout:cancel')) + f'?order={order.number}',
+                )
+                return redirect(checkout_url, permanent=False)
             session = create_payment_session(
                 order,
                 self.request.build_absolute_uri(reverse('checkout:success')) + f'?order={order.number}&session_id={{CHECKOUT_SESSION_ID}}',
                 self.request.build_absolute_uri(reverse('checkout:cancel')) + f'?order={order.number}',
             )
-        except (StripeConfigurationError, stripe.error.StripeError) as exc:
+        except (StripeConfigurationError, stripe.error.StripeError, foxpay.FoxPayError) as exc:
             order.status = Order.Status.FAILED
             order.save(update_fields=['status', 'updated_at'])
             form.add_error(None, str(exc))
             return self._form_invalid_with_quote_preview(form)
         return redirect(session.url, permanent=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault('foxpay_available', foxpay.is_enabled())
+        return context
 
     def _form_invalid_with_quote_preview(self, form):
         quote_preview = self.request.session.get('checkout_quote_preview') or {}

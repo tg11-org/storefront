@@ -9,3 +9,4 @@ whitenoise==6.12.0
 httpx==0.28.1
 joserfc==1.4.0
 tg11-auth @ file:///app/vendor/tg11_auth-0.1.0-py3-none-any.whl
+requests==2.32.5

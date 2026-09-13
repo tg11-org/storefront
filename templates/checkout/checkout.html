@@ -35,7 +35,7 @@
     {% if form.errors %}
       <div class="error-list">{{ form.errors }}</div>
     {% endif %}
-    <button class="button primary" type="submit">{% if quote_preview_ready %}Proceed to Stripe{% else %}Get shipping rates{% endif %}</button>
+    <button class="button primary" type="submit">{% if quote_preview_ready %}Continue to payment{% else %}Get shipping rates{% endif %}</button>
   </aside>
 
   <section class="stack-card">
@@ -76,6 +76,17 @@
         {% endfor %}
       </div>
       <input type="hidden" name="confirm_checkout" value="1">
+      {% if foxpay_available %}
+      <fieldset class="payment-choice" style="border:1px solid var(--border,#ddd);border-radius:10px;padding:.75rem;margin:.75rem 0;">
+        <legend style="padding:0 .4rem;">How would you like to pay?</legend>
+        <label style="display:block;margin:.2rem 0;">
+          <input type="radio" name="payment_provider" value="stripe" checked> Card, Apple Pay or Google Pay <span class="muted">(Stripe)</span>
+        </label>
+        <label style="display:block;margin:.2rem 0;">
+          <input type="radio" name="payment_provider" value="foxpay"> Fox Pay <span class="muted">(card or crypto, by TG11)</span>
+        </label>
+      </fieldset>
+      {% endif %}
       <input type="hidden" name="shipping_signature" value="{{ shipping_signature }}">
     {% else %}
       {{ form.shipping_rate_rule.as_hidden }}

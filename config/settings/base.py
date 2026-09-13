@@ -292,6 +292,14 @@ SHIP_FROM_PHONE = env('SHIP_FROM_PHONE', '')
 SHIP_FROM_EMAIL = env('SHIP_FROM_EMAIL', SERVER_EMAIL)
 TAX_PROVIDER = env('TAX_PROVIDER', 'none')
 TAX_PROVIDER_REQUIRED = env_bool('TAX_PROVIDER_REQUIRED', False)
+# --- Fox Pay (foxpay.fyi) -----------------------------------------------------
+# TG11's own payment service, offered next to Stripe. The shop never sees card
+# details either way; Fox Pay's signed webhook is what completes an order.
+FOXPAY_API_BASE = env('FOXPAY_API_BASE', 'https://foxpay.fyi')
+FOXPAY_API_KEY = env('FOXPAY_API_KEY', '')
+FOXPAY_WEBHOOK_SECRET = env('FOXPAY_WEBHOOK_SECRET', '')
+FOXPAY_ENABLED = env_bool('FOXPAY_ENABLED', False)
+
 STRIPE_TAX_ENABLED = env_bool('STRIPE_TAX_ENABLED', False)
 STRIPE_TAX_BEHAVIOR = env('STRIPE_TAX_BEHAVIOR', 'exclusive')
 PRICING_ALERT_EMAILS_ENABLED = env_bool('PRICING_ALERT_EMAILS_ENABLED', False)

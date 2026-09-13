@@ -87,3 +87,22 @@ def stripe_webhook(request):
         logger.exception('Stripe webhook processing failed for event=%s id=%s', event_type, event.get('id', ''))
 
     return HttpResponse(status=200)
+
+
+@csrf_exempt
+def foxpay_webhook(request):
+    """Fox Pay tells us an order was paid.
+
+    This is the authoritative signal - not the browser redirect - so it verifies
+    the HMAC signature over the raw body before believing a word of it, and
+    always answers 200 for anything it has understood so Fox Pay stops retrying.
+    """
+    from . import foxpay
+
+    if request.method != 'POST':
+        return HttpResponseBadRequest('POST only')
+    accepted, message = foxpay.handle_event(request.body, request.headers.get('FoxPay-Signature', ''))
+    if not accepted:
+        logger.warning('Fox Pay webhook rejected: %s', message)
+        return HttpResponseBadRequest(message)
+    return HttpResponse(message or 'ok')
