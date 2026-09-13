@@ -292,6 +292,16 @@ SHIP_FROM_PHONE = env('SHIP_FROM_PHONE', '')
 SHIP_FROM_EMAIL = env('SHIP_FROM_EMAIL', SERVER_EMAIL)
 TAX_PROVIDER = env('TAX_PROVIDER', 'none')
 TAX_PROVIDER_REQUIRED = env_bool('TAX_PROVIDER_REQUIRED', False)
+# --- PayPal (Orders v2) -------------------------------------------------------
+# Server-side create + capture; the shop never touches card details. Without a
+# webhook id, webhooks are refused rather than trusted - capture-on-return still
+# completes orders.
+PAYPAL_ENV = env('PAYPAL_ENV', 'sandbox')
+PAYPAL_CLIENT_ID = env('PAYPAL_CLIENT_ID', '')
+PAYPAL_CLIENT_SECRET = env('PAYPAL_CLIENT_SECRET', '')
+PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID', '')
+PAYPAL_ENABLED = env_bool('PAYPAL_ENABLED', False)
+
 # --- Fox Pay (foxpay.fyi) -----------------------------------------------------
 # TG11's own payment service, offered next to Stripe. The shop never sees card
 # details either way; Fox Pay's signed webhook is what completes an order.

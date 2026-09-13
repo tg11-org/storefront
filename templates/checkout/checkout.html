@@ -83,8 +83,13 @@
           <input type="radio" name="payment_provider" value="stripe" checked> Card, Apple Pay or Google Pay <span class="muted">(Stripe)</span>
         </label>
         <label style="display:block;margin:.2rem 0;">
-          <input type="radio" name="payment_provider" value="foxpay"> Fox Pay <span class="muted">(card or crypto, by TG11)</span>
+          <input type="radio" name="payment_provider" value="foxpay"> Fox Pay <span class="muted">(card, crypto or a saved method, by TG11)</span>
         </label>
+        {% if paypal_available %}
+        <label style="display:block;margin:.2rem 0;">
+          <input type="radio" name="payment_provider" value="paypal"> PayPal <span class="muted">(your PayPal balance or a card)</span>
+        </label>
+        {% endif %}
       </fieldset>
       {% endif %}
       <input type="hidden" name="shipping_signature" value="{{ shipping_signature }}">

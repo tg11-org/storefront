@@ -106,3 +106,18 @@ def foxpay_webhook(request):
         logger.warning('Fox Pay webhook rejected: %s', message)
         return HttpResponseBadRequest(message)
     return HttpResponse(message or 'ok')
+
+
+@csrf_exempt
+def paypal_webhook(request):
+    """PayPal's own notifications, verified by asking PayPal to check its
+    signature. Unverifiable events are refused, never assumed."""
+    from . import paypal
+
+    if request.method != 'POST':
+        return HttpResponseBadRequest('POST only')
+    accepted, message = paypal.handle_event(request.headers, request.body)
+    if not accepted:
+        logger.warning('PayPal webhook rejected: %s', message)
+        return HttpResponseBadRequest(message)
+    return HttpResponse(message or 'ok')
