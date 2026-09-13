@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'allauth',
     'allauth.account',
+    'tg11_auth',
     'accounts',
     'catalog',
     'cart',
@@ -126,6 +127,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'cart.context_processors.cart_summary',
                 'catalog.context_processors.store_settings',
+                'tg11_auth.context_processors.tg11',
             ],
         },
     },
@@ -339,3 +341,26 @@ if SENTRY_DSN:
         )
     except ImportError:
         logging.getLogger(__name__).warning('SENTRY_DSN is set but sentry-sdk is not installed.')
+
+
+# --- TG11 single sign-on ------------------------------------------------------
+# Identity lives at accounts.tg11.org. The shop keeps its own customers, orders
+# and addresses; only the TG11 UUID is stored, in tg11_auth_tg11identitylink.
+# allauth stays exactly as it is - TG11 is an additional way in, not a
+# replacement. See TG11Accounts docs/TG11_IDENTITY.md.
+AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + ['tg11_auth.backends.TG11Backend']
+
+TG11_OIDC_ISSUER = env('TG11_OIDC_ISSUER', '')
+TG11_OIDC_CLIENT_ID = env('TG11_OIDC_CLIENT_ID', '')
+TG11_OIDC_CLIENT_SECRET = env('TG11_OIDC_CLIENT_SECRET', '')
+TG11_OIDC_REDIRECT_URI = env('TG11_OIDC_REDIRECT_URI', '')
+TG11_OIDC_SCOPES = 'openid profile email tg11.profile'
+TG11_APPLICATION = 'shop'
+
+TG11_AUTH_BASE_TEMPLATE = 'base.html'
+TG11_AUTH_ACCOUNT_URL = '/account/'
+TG11_AUTH_LOGIN_REDIRECT = '/account/'
+TG11_AUTH_POST_LOGOUT_REDIRECT = '/'
+# The shop demands a verified email; TG11 only creates an account here when it
+# has verified one itself, and the hook records that for allauth.
+TG11_AUTH_PROFILE_HOOK = 'accounts.tg11.on_tg11_login'

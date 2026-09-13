@@ -11,6 +11,7 @@ from config.views import favicon, healthcheck
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.account.urls')),
+    path('auth/tg11/', include('tg11_auth.urls')),
     path('account/', include(('accounts.urls', 'accounts'), namespace='accounts')),
     path('cart/', include(('cart.urls', 'cart'), namespace='cart')),
     path('checkout/', include(('checkout.urls', 'checkout'), namespace='checkout')),

@@ -10,6 +10,12 @@
     {{ form.as_p }}
     <button class="button primary" type="submit">Log in</button>
   </form>
+  {% if tg11_configured %}
+    <p class="eyebrow" style="margin-top:1.5rem;">or</p>
+    <p><a class="button" href="{% url 'tg11_auth:login' %}">Continue with TG11</a></p>
+    <p class="muted">One TG11 account signs you in to every TG11 service.</p>
+  {% endif %}
+
   <p><a href="{% url 'account_signup' %}">Need an account?</a></p>
 </section>
 {% endblock %}

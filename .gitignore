@@ -1,49 +1,43 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-
-# Local product image staging
-product-image-staging/*
-!product-image-staging/.gitkeep
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Logs
-*.log
-
-# Test and coverage output
-.pytest_cache/
+*.code-workspace
 .coverage
 .coverage.*
-htmlcov/
-
-# Type-checker / linter caches
-.mypy_cache/
-.ruff_cache/
-.pyre/
-
-# IDE / editor files
-.idea/
-.vscode/
-*.code-workspace
-
-# OS files
+db.sqlite3
+db.sqlite3-journal
+# Django
 .DS_Store
+.env
+.env.bak.*
+env/
+# Environment files
+.env.*.local
+.env.local
+htmlcov/
+.idea/
+# IDE / editor files
+# Local product image staging
+*.log
+# Logs
+media/
+.mypy_cache/
+# OS files
+product-image-staging/*
+!product-image-staging/.gitkeep
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pyre/
+.pytest_cache/
+# Python
+.ruff_cache/
+*.so
+staticfiles/
+# Test and coverage output
 Thumbs.db
+# Type-checker / linter caches
+vendor/*.whl
+.venv/
+venv/
+# Virtual environments
+.vscode/
