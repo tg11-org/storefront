@@ -23,6 +23,7 @@ urlpatterns = [
     path('health/', healthcheck, name='healthcheck'),
     path('favicon.ico', favicon, {'filename': 'favicon.ico'}, name='favicon_ico'),
     path('favicon.png', favicon, {'filename': 'favicon.png'}, name='favicon_png'),
+    path('', include(('sitepages.urls', 'sitepages'), namespace='sitepages')),
     path('', include(('catalog.urls', 'catalog'), namespace='catalog')),
 ]
 

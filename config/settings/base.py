@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     'pricing',
     'connectors',
     'dashboard',
+    'sitepages',
 ]
 
 MIDDLEWARE = [

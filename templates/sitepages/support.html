@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Support · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Support</h1>
+
+  <p class="lead">
+    Email <a href="mailto:support@tg11.org">support@tg11.org</a>. A person reads it.
+  </p>
+
+  <h2>What to include</h2>
+  <ul>
+    <li>Your order number (it starts with
+      <code>{{ store_settings.order_prefix|default:"TG11" }}</code>), or the email address you
+      ordered with.</li>
+    <li>For anything wrong with the item: photos of the problem and of the printed label, if you
+      still have it. That is usually enough to send a replacement without further questions.</li>
+    <li>For a payment question: the amount, the date and the last four digits — never the full card
+      number and never the CVV. We will never ask for those.</li>
+  </ul>
+
+  <h2>The quick answers</h2>
+  <ul>
+    <li><b>Where is my order?</b> Check <a href="/orders/">your orders</a> for tracking. Production
+      takes a few days before anything ships.</li>
+    <li><b>It arrived wrong or damaged.</b> Within 30 days, with photos: replaced or refunded in
+      full. See <a href="/terms/">returns</a>.</li>
+    <li><b>Wrong size.</b> Ask — the honest answer is on the <a href="/faq/">FAQ</a>.</li>
+    <li><b>Change or cancel.</b> Same day, before production starts, with the order number.</li>
+  </ul>
+
+  <h2>Before you dispute a charge</h2>
+  <p>
+    Please write to us first. A chargeback takes weeks and blocks the account while it runs; an
+    email usually ends with a replacement or a refund the same week. Your right to dispute with
+    your bank is not affected by asking us first.
+  </p>
+
+  <h2>Other things</h2>
+  <ul>
+    <li><b>Security reports:</b> same address — please read the short rules on the
+      <a href="/guidelines/">guidelines page</a> first.</li>
+    <li><b>Copyright or trademark:</b> same address, with proof of ownership and the listing URL.</li>
+    <li><b>Is the site down?</b> <a href="/status/">Status</a>.</li>
+  </ul>
+
+  <p class="muted">
+    This is a small operation, so replies come when a person is at a keyboard rather than within a
+    contractual window. Anything involving money or a wrong item goes first.
+  </p>
+</article>
+{% endblock %}

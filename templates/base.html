@@ -76,7 +76,18 @@
     </main>
 
     <footer class="site-footer">
+      <nav class="footlinks" aria-label="Information">
+        <a href="/about/">About</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/guidelines/">Guidelines</a>
+        <a href="/terms/">Terms</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/status/">Status</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/support/">Support</a>
+      </nav>
       <p>{{ store_settings.footer_text|default:"Payments run through Stripe Checkout. Fulfillment jobs queue after payment." }}</p>
+      <p class="muted">Copyleft 2026 TG11 LLC</p>
     </footer>
   </div>
   <script>

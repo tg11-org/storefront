@@ -149,3 +149,21 @@ select[multiple] { min-height: 12rem; }
     backdrop-filter: none;
   }
 }
+
+/* ---- information pages (about, policies, status, changelog) ---- */
+.prose { max-width: 52rem; margin: 0 auto; line-height: 1.6; }
+.prose h1 { margin: 0.2rem 0 0.6rem; }
+.prose h2 { margin: 1.5rem 0 0.4rem; font-size: 1.05rem; }
+.prose p { margin: 0.55rem 0; }
+.prose ul, .prose ol { padding-left: 1.2rem; margin: 0.4rem 0; }
+.prose li { margin: 0.28rem 0; }
+.policy-meta { margin: 0.2rem 0 1.2rem; font-size: 0.9rem; }
+.statusline { margin: 0.4rem 0 1rem; }
+.status-pill { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; }
+.status-pill.ok { background: #124b3c; color: #b8ffe9; }
+.status-pill.bad { background: #5a1f2a; color: #ffd0d6; }
+.changelog section { margin: 1.5rem 0; }
+.changelog section h2 { border-bottom: 1px solid currentColor; padding-bottom: 0.3rem; opacity: 0.95; }
+.footlinks { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-bottom: 0.5rem; }
+.footlinks a { text-decoration: none; opacity: 0.85; }
+.footlinks a:hover { text-decoration: underline; opacity: 1; }

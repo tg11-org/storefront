@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Changelog · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose changelog">
+  <h1>Changelog</h1>
+  <p class="muted">Changes to the shop itself, newest first. Product news lives on the store pages.</p>
+
+  <section>
+    <h2>2026-09-14 — Information pages</h2>
+    <ul>
+      <li>About, Terms of Sale, Privacy, Guidelines, FAQ, Support, Status and this changelog, linked
+        from every footer.</li>
+      <li>The terms now say plainly how made-to-order goods work: what we replace without argument,
+        and where a change of mind stands.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2026-09-13 — More ways to pay</h2>
+    <ul>
+      <li>PayPal at checkout, settled on PayPal's own signed confirmation rather than on the browser
+        coming back.</li>
+      <li><a href="https://foxpay.fyi">Fox Pay</a> alongside Stripe, which also opens the door to a
+        crypto invoice.</li>
+      <li>One shared completion path behind all three, so an order is marked paid once and only
+        once, whichever route took the money.</li>
+      <li>The payment choice appears whenever there is actually a choice to make.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2026-09-13 — Sign in with TG11</h2>
+    <ul>
+      <li>TG11 single sign-on: one identity across the TG11 services, with two-factor authentication
+        if you turn it on there. Local shop accounts still work.</li>
+      <li>Free-shipping threshold wired through checkout properly, and a shipping option that was
+        being quoted but could not be fulfilled was removed rather than left to disappoint people.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Earlier in 2026</h2>
+    <ul>
+      <li>Guest checkout, so an order does not require an account.</li>
+      <li>Tax handling corrections.</li>
+      <li>Product media uploads, page hero banners, and link previews for products and store pages.</li>
+      <li>Marketplace connectors for listings and orders, and the fulfilment pipeline behind them.</li>
+    </ul>
+  </section>
+
+  <p class="muted">
+    Maintained by hand from the release history, so it records what changed for you rather than
+    every commit.
+  </p>
+</article>
+{% endblock %}

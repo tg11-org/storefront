@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Terms of Sale · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Terms of Sale</h1>
+  {% include "sitepages/_meta.html" %}
+
+  <p>
+    This shop is operated by <b>TG11 LLC</b> ("we", "us"). Buying here, or using the site, means
+    you accept these terms.
+  </p>
+
+  <h2>1. Orders</h2>
+  <ul>
+    <li>An order is an offer to buy. It is accepted when we confirm it and start production — not
+      when the page says thank you.</li>
+    <li>We may decline or cancel an order and refund it in full: pricing or stock errors, a design
+      we can no longer print, a delivery address we cannot ship to, or a payment we cannot verify.</li>
+    <li>Every item is <b>made to order</b>. Check your size and your design choice before paying;
+      once production starts, an order cannot be changed.</li>
+    <li>Colours on a screen are not exactly the colours on fabric, and print placement varies
+      slightly between garments. That is normal for printed apparel, not a defect.</li>
+  </ul>
+
+  <h2>2. Prices and payment</h2>
+  <ul>
+    <li>Prices are in {{ store_settings.currency|default:"usd"|upper }} and exclude shipping unless
+      stated. Taxes are added where required.</li>
+    <li>Payment is taken at checkout through Stripe, PayPal or Fox Pay. We never see or store your
+      card number.</li>
+    <li>Your bank or wallet may add its own fees or conversion rate.</li>
+    <li>An order is only paid when the payment provider confirms it. A returning browser is not a
+      confirmation.</li>
+  </ul>
+
+  <h2>3. Shipping</h2>
+  <ul>
+    <li>Production takes a few business days before an item ships; transit time is on top of that
+      and depends on the destination.</li>
+    <li>Shipping is charged by destination and method at checkout, and is free over
+      {{ store_settings.free_shipping_threshold|default:"100.00" }}
+      {{ store_settings.currency|default:"usd"|upper }}.</li>
+    <li>The address you enter is the address we print on the label. Tell us the same day if it is
+      wrong; after that the parcel is on its way.</li>
+    <li>Import duties and customs charges on international orders are yours to pay.</li>
+    <li>Risk passes to you on delivery. If a parcel is lost in transit, tell us and we will chase
+      the carrier and make it right.</li>
+  </ul>
+
+  <h2>4. Returns and refunds</h2>
+  <p>
+    Made-to-order goods are exempt from most distance-selling cooling-off rights, so this is what we
+    offer instead, and we mean it:
+  </p>
+  <ul>
+    <li><b>Wrong, damaged or faulty item:</b> tell us within 30 days of delivery with photos, and we
+      replace it or refund it in full, including shipping. No need to send it back unless we ask.</li>
+    <li><b>Print defects</b> — misprints, peeling, wrong colour, wrong size printed — count as
+      faulty. Normal wear, wash damage and ordinary variation do not.</li>
+    <li><b>Ordered the wrong size or changed your mind:</b> we are not obliged to take it back, and
+      usually cannot resell it. Ask anyway — if production has not started we will cancel and refund,
+      and if it has we will tell you honestly what we can do.</li>
+    <li>Refunds go back to the payment method you used, and take a few days to appear.</li>
+    <li>Nothing here limits a statutory right you have as a consumer where you live.</li>
+  </ul>
+
+  <h2>5. Your account</h2>
+  <p>
+    Keep your password safe, and do not use somebody else's card. We may suspend an account used for
+    fraud, chargeback abuse or reseller scraping.
+  </p>
+
+  <h2>6. Using the site</h2>
+  <p>
+    Product photos, designs and text are ours or our licensors'. Do not copy the designs onto your
+    own merchandise. The <a href="/guidelines/">guidelines</a> cover the rest.
+  </p>
+
+  <h2>7. Availability and liability</h2>
+  <p>
+    The site is provided "as is"; products come and go, and a listing is not a promise of perpetual
+    availability. To the fullest extent the law allows, our liability for any order is limited to
+    what you paid for it, and we are not liable for indirect or consequential losses. Nothing
+    excludes liability that cannot legally be excluded.
+  </p>
+
+  <h2>8. Changes</h2>
+  <p>
+    We may update these terms; the version and date at the top change when we do. The terms that
+    apply to your order are the ones published when you placed it.
+  </p>
+
+  <h2>9. Governing law</h2>
+  <p>
+    These terms are governed by the law of the operator's primary jurisdiction in the United
+    States, except where non-waivable local consumer law says otherwise.
+  </p>
+
+  <h2>10. Contact</h2>
+  <p><a href="mailto:support@tg11.org">support@tg11.org</a></p>
+</article>
+{% endblock %}

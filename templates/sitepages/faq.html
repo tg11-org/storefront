@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}FAQ · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Frequently asked questions</h1>
+
+  <h2>How long until my order arrives?</h2>
+  <p>
+    Every item is printed after you order it, so allow a few business days for production and then
+    the carrier's transit time on top. You get a shipping notice with tracking when it leaves.
+  </p>
+
+  <h2>How much is shipping?</h2>
+  <p>
+    It depends on where it is going and which method you pick — the exact figure appears at
+    checkout before you pay. It is free over
+    {{ store_settings.free_shipping_threshold|default:"100.00" }}
+    {{ store_settings.currency|default:"usd"|upper }}.
+  </p>
+
+  <h2>Do you ship internationally?</h2>
+  <p>
+    Where a rate shows at checkout, yes. Import duties and customs charges are the buyer's to pay.
+  </p>
+
+  <h2>How do I pay?</h2>
+  <p>
+    Stripe, PayPal, or <a href="https://foxpay.fyi">Fox Pay</a> — our own payment layer, which can
+    also settle a crypto invoice. Card details go to the payment provider, never to the shop.
+  </p>
+
+  <h2>Can I change or cancel an order?</h2>
+  <p>
+    If production has not started, yes — email us the same day with the order number. Once it is in
+    production it cannot be changed, because there is now a garment with your design on it.
+  </p>
+
+  <h2>What if it arrives wrong or damaged?</h2>
+  <p>
+    Tell us within 30 days with photos and we replace it or refund it in full, shipping included.
+    Misprints, peeling, the wrong size printed and the wrong item are all on us.
+  </p>
+
+  <h2>Can I return it because it does not fit?</h2>
+  <p>
+    Made-to-order items cannot generally be resold, so there is no automatic right of return. Ask
+    anyway — if we can help, we will, and the <a href="/terms/">terms</a> spell out exactly where
+    we stand. Checking the size guide before ordering is the reliable fix.
+  </p>
+
+  <h2>Where is my tracking?</h2>
+  <p>
+    In the shipping notice, and on your <a href="/orders/">orders page</a> if you have an account.
+    Tracking can take a day to start moving after it is issued.
+  </p>
+
+  <h2>Do I need an account?</h2>
+  <p>
+    No, but an account keeps your order history and addresses. You can also sign in with your
+    <a href="https://accounts.tg11.org">TG11 account</a> if you have one.
+  </p>
+
+  <h2>I do not recognise a charge.</h2>
+  <p>
+    Check the descriptor — it may read as the payment provider rather than the shop. Sign in and
+    look at your orders, then write to <a href="/support/">support</a> with the amount, date and
+    last four digits and we will identify it.
+  </p>
+
+  <h2>Are these the same items as on Etsy?</h2>
+  <p>
+    Some designs are listed there too. A purchase there is governed by that marketplace's policies;
+    a purchase here is governed by ours.
+  </p>
+
+  <h2>How should I wash it?</h2>
+  <p>
+    Inside out, cold, gentle cycle, and keep it out of the tumble dryer if you want the print to
+    last. Printed apparel dislikes heat more than anything else.
+  </p>
+</article>
+{% endblock %}

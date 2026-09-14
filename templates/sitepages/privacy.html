@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Privacy Policy</h1>
+  {% include "sitepages/_meta.html" %}
+
+  <p>
+    This shop is operated by <b>TG11 LLC</b>. Selling physical goods means handling a name and an
+    address, so here is exactly what exists, where it goes, and how to get rid of it.
+  </p>
+
+  <h2>1. What we never hold</h2>
+  <p>
+    <b>Card numbers, CVVs and bank credentials.</b> Card details are entered with Stripe, PayPal or
+    Fox Pay on their own pages. What comes back to us is a payment reference and, at most, a card
+    brand and last four digits on your order.
+  </p>
+
+  <h2>2. What we store</h2>
+  <ul>
+    <li><b>Order data:</b> what you bought, the price, the order number, its status, and the
+      payment reference.</li>
+    <li><b>Shipping and billing addresses</b>, and the name and phone number on them.</li>
+    <li><b>Account data</b> if you make one: email address, password hash, saved addresses, order
+      history — or a link to your TG11 account if you sign in that way.</li>
+    <li><b>Cart contents</b>, tied to your session so the cart survives a page reload.</li>
+    <li><b>Correspondence</b> you send us about an order.</li>
+    <li><b>Operational data:</b> IP address, user agent and server logs.</li>
+  </ul>
+
+  <h2>3. Who else sees it</h2>
+  <ul>
+    <li><b>The payment provider</b> you chose — Stripe, PayPal or Fox Pay — receives the amount and
+      an order reference and handles the payment leg under their own policy.</li>
+    <li><b>The print and fulfilment partner</b> receives what is needed to make and ship your
+      parcel: the item, the size, your name and your delivery address.</li>
+    <li><b>The carrier</b> receives the delivery address to deliver it.</li>
+    <li><b>Our email provider</b> sends order confirmations and shipping notices.</li>
+    <li><b>TG11 Accounts</b>, for sign-in only, if you use it.</li>
+  </ul>
+  <p>
+    Nothing is sold to anyone, there is no advertising network on this site, and we do not build
+    profiles for marketing. Beyond the list above, information is shared only where the law requires
+    it or to investigate fraud.
+  </p>
+
+  <h2>4. Cookies</h2>
+  <p>
+    A session cookie to keep your cart and sign-in, a CSRF token for security, and your light/dark
+    theme choice in local storage. No advertising or analytics cookies.
+  </p>
+
+  <h2>5. How long we keep it</h2>
+  <ul>
+    <li>Orders and their payment references: kept for the period tax and accounting rules require
+      — expect years. These are the records that prove what you bought and what you paid.</li>
+    <li>Account and address data: while your account exists.</li>
+    <li>Carts: cleared after a period of inactivity.</li>
+    <li>Server logs: a short operational window. Backups: rolling.</li>
+  </ul>
+
+  <h2>6. Your controls</h2>
+  <ul>
+    <li>Edit or delete saved addresses and change your email in your account.</li>
+    <li>Email <a href="mailto:support@tg11.org">support@tg11.org</a> for a copy of your data, a
+      correction, or to close your account. We will delete the account and its addresses; the order
+      records behind it are kept where the law requires, and we will tell you which is which.</li>
+    <li>Marketing email, if we ever send any, always carries an unsubscribe link. Order
+      confirmations and shipping notices are not marketing and cannot be turned off while an order
+      is open.</li>
+  </ul>
+
+  <h2>7. Security</h2>
+  <p>
+    Passwords are hashed, the site is served over HTTPS, payment credentials never reach us, and
+    payment confirmation comes from the provider's signed webhook rather than from the browser. No
+    system is perfectly secure; if a breach affects you, we will tell you.
+  </p>
+
+  <h2>8. Children</h2>
+  <p>
+    The shop is not intended for children. If you are under the age of majority where you live,
+    order with a parent or guardian's involvement.
+  </p>
+
+  <h2>9. Where it runs</h2>
+  <p>
+    The shop runs on servers in the United States; payment and fulfilment partners may process data
+    elsewhere.
+  </p>
+
+  <h2>10. Contact</h2>
+  <p>
+    Privacy questions and data requests: <a href="mailto:support@tg11.org">support@tg11.org</a>.
+  </p>
+</article>
+{% endblock %}

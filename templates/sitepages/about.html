@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}About · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>About the shop</h1>
+
+  <p class="lead">
+    {{ store_settings.name|default:"TG11 Shop" }} sells custom-printed apparel — hoodies and
+    pullovers, made to order rather than pulled off a shelf.
+  </p>
+
+  <h2>How an order actually works</h2>
+  <ol>
+    <li>You pick a design and a size and pay at checkout.</li>
+    <li>The order goes to the print partner who produces that item.</li>
+    <li>They print it, pack it and ship it to you; tracking follows when it leaves.</li>
+  </ol>
+  <p>
+    Because each item is made after you order it, production takes a few days before shipping
+    starts — and it is also why <a href="/terms/">returns work differently</a> than they would for
+    something kept in a warehouse.
+  </p>
+
+  <h2>Paying</h2>
+  <p>
+    Checkout runs through <a href="https://stripe.com" rel="noopener">Stripe</a>, PayPal, or
+    <a href="https://foxpay.fyi">Fox Pay</a> — our own payment layer, which in turn routes to a card
+    provider or a crypto invoice. Whichever you pick, the card details are entered with the payment
+    provider, never with the shop: there are no card numbers in this system.
+  </p>
+
+  <h2>Accounts</h2>
+  <p>
+    You can check out with an account or sign in with your
+    <a href="https://accounts.tg11.org">TG11 account</a> — the same identity used across the other
+    TG11 services. An account keeps your order history and addresses; the shop keeps its own data
+    either way.
+  </p>
+
+  <h2>Elsewhere</h2>
+  <p>
+    Some designs are also listed on Etsy. Buying there is a purchase from that marketplace under
+    their policies; buying here is a purchase from us under
+    <a href="/terms/">these terms</a>.
+  </p>
+
+  <h2>Who runs it</h2>
+  <p>
+    The shop is operated by <b>TG11 LLC</b>. Questions, order problems and anything that looks
+    wrong: <a href="mailto:support@tg11.org">support@tg11.org</a>, or the
+    <a href="/support/">support page</a>.
+  </p>
+</article>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Status · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Store status</h1>
+
+  <p class="statusline">
+    <span class="status-pill {% if overall == 'ok' %}ok{% else %}bad{% endif %}">{{ overall|upper }}</span>
+  </p>
+
+  {% if overall == 'ok' %}
+  <p>The shop is serving pages and its database is answering, so browsing and checkout should work.</p>
+  {% else %}
+  <p>
+    The shop is serving pages but its database is not answering. Carts and orders will not save
+    right now. We can see this too; please try again shortly rather than paying twice.
+  </p>
+  {% endif %}
+
+  <h2>What this page checks</h2>
+  <p>
+    That the application is up and its database responds. It reports a summary on purpose — detailed
+    diagnostics stay in the operator's tooling.
+  </p>
+
+  <h2>What it cannot tell you</h2>
+  <p>
+    Whether a <b>payment provider</b> (Stripe, PayPal, <a href="https://foxpay.fyi">Fox Pay</a>) or
+    the <b>print and shipping partner</b> is having a bad day. A checkout that fails at the payment
+    step, or a parcel that has not moved, will not show up here — the provider's own status page
+    will.
+  </p>
+
+  <h2>If a payment looked like it failed</h2>
+  <p>
+    Check <a href="/orders/">your orders</a> before paying again: an order is marked paid when the
+    provider's signed confirmation arrives, which can lag the browser by a minute. If you do end up
+    charged twice, tell us and we refund the duplicate — <a href="/support/">support</a>.
+  </p>
+
+  <p class="muted">
+    Machine-readable: <a href="/health/"><code>/health/</code></a>. Recent changes:
+    <a href="/changelog/">changelog</a>.
+  </p>
+</article>
+{% endblock %}

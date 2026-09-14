@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Guidelines · {{ store_settings.name|default:"TG11 Shop" }}{% endblock %}
+{% block content %}
+<article class="prose">
+  <h1>Guidelines</h1>
+  {% include "sitepages/_meta.html" %}
+
+  <p>
+    A shop does not need a rulebook the length of a social network's. These are the few things that
+    matter, and what happens when they are ignored.
+  </p>
+
+  <h2>Ordering in good faith</h2>
+  <ul>
+    <li>Use a payment method that belongs to you, and a delivery address you are entitled to use.</li>
+    <li>Do not dispute a charge with your bank as a substitute for asking us — a chargeback on an
+      order we would happily have refunded costs us the goods and a fee, and gets the account
+      blocked.</li>
+    <li>Do not place orders you intend to cancel, or reorder to game a discount or a free-shipping
+      threshold.</li>
+    <li>Buying to resell is fine at small scale; bulk scraping of stock and pricing is not.</li>
+  </ul>
+
+  <h2>The designs</h2>
+  <ul>
+    <li>The artwork on these garments is ours or licensed to us. Buy the hoodie, not the right to
+      reprint it.</li>
+    <li>Do not copy product photos or descriptions onto another storefront.</li>
+    <li>If you believe a design infringes your rights, email
+      <a href="mailto:support@tg11.org">support@tg11.org</a> with proof of ownership and the listing
+      URL; we take the listing down while we look.</li>
+  </ul>
+
+  <h2>Talking to us</h2>
+  <ul>
+    <li>Support is a person. Be as rude as you like about the product; abuse aimed at the person
+      reading gets the conversation ended.</li>
+    <li>Send photos with a defect report — it is almost always the fastest route to a replacement.</li>
+    <li>Do not send us your full card number, and never the CVV. We will never ask for either.</li>
+  </ul>
+
+  <h2>The site itself</h2>
+  <ul>
+    <li>No scraping, credential stuffing, or automated ordering.</li>
+    <li>No probing for vulnerabilities against the live shop. If you find one, tell us at
+      <a href="mailto:support@tg11.org">support@tg11.org</a> with enough detail to reproduce it,
+      give us a reasonable chance to fix it, and do not touch other people's orders while you look.</li>
+  </ul>
+
+  <h2>What happens when this goes wrong</h2>
+  <p>
+    In proportion, and with an explanation: a refused order, a refunded and cancelled order, a
+    blocked account, and — for fraud or theft — a report to the payment provider and, where
+    warranted, the authorities.
+  </p>
+</article>
+{% endblock %}
