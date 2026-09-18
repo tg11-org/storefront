@@ -16,9 +16,6 @@
     <p class="muted">One TG11 account signs you in to every TG11 service.</p>
   {% endif %}
 
-  <p class="authlinks">
-    <a href="{% url 'account_signup' %}">Need an account?</a>
-    <a href="{% url 'account_reset_password' %}">Forgot password?</a>
-  </p>
+  <p><a href="{% url 'account_signup' %}">Need an account?</a></p>
 </section>
 {% endblock %}

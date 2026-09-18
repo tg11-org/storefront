@@ -167,6 +167,3 @@ select[multiple] { min-height: 12rem; }
 .footlinks { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-bottom: 0.5rem; }
 .footlinks a { text-decoration: none; opacity: 0.85; }
 .footlinks a:hover { text-decoration: underline; opacity: 1; }
-
-.authlinks { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-top: 1.25rem; }
-.authlinks a { white-space: nowrap; }
